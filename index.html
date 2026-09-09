@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fashion Corner — Moda que combina com você</title>
+  <meta name="description" content="Fashion Corner: sua loja de moda com as últimas tendências em roupas, calçados e acessórios. Frete rápido, troca fácil e os melhores preços.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👗</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- Top announcement bar -->
+  <div class="announcement">
+    <p>Frete grátis para compras acima de R$ 199 &nbsp;•&nbsp; Novidades toda semana &nbsp;•&nbsp; Até 10x sem juros</p>
+  </div>
+
+  <!-- Header -->
+  <header class="header" id="header">
+    <div class="container header__inner">
+      <a href="#top" class="logo">Fashion<span>Corner</span></a>
+
+      <nav class="nav" id="nav">
+        <a href="#colecao">Coleção</a>
+        <a href="#categorias">Categorias</a>
+        <a href="#vantagens">Vantagens</a>
+        <a href="#depoimentos">Depoimentos</a>
+        <a href="#newsletter">Contato</a>
+      </nav>
+
+      <div class="header__actions">
+        <button class="icon-btn" aria-label="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <button class="icon-btn" aria-label="Favoritos"><i class="fa-regular fa-heart"></i></button>
+        <button class="icon-btn" aria-label="Carrinho"><i class="fa-solid fa-bag-shopping"></i></button>
+        <button class="btn btn--outline nav-cta">Comprar agora</button>
+      </div>
+
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero" id="top">
+    <div class="hero__bg" style="background-image:url('https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1600&q=80')"></div>
+    <div class="hero__overlay"></div>
+    <div class="container hero__content">
+      <span class="eyebrow">Coleção Primavera/Verão</span>
+      <h1>Moda que conta<br>a sua história</h1>
+      <p>Peças exclusivas, tecidos selecionados e um estilo que é só seu. Descubra a nova coleção Fashion Corner.</p>
+      <div class="hero__actions">
+        <a href="#colecao" class="btn btn--primary">Ver coleção</a>
+        <a href="#categorias" class="btn btn--ghost">Explorar categorias <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+    </div>
+    <a href="#categorias" class="scroll-cue" aria-label="Rolar para baixo"><i class="fa-solid fa-chevron-down"></i></a>
+  </section>
+
+  <!-- Categories -->
+  <section class="categories" id="categorias">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Categorias</span>
+        <h2>Encontre o seu estilo</h2>
+      </div>
+      <div class="cat-grid">
+        <a href="#" class="cat-card">
+          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&q=80" alt="Moda feminina">
+          <div class="cat-card__label">Feminino</div>
+        </a>
+        <a href="#" class="cat-card">
+          <img src="https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=600&q=80" alt="Moda masculina">
+          <div class="cat-card__label">Masculino</div>
+        </a>
+        <a href="#" class="cat-card">
+          <img src="https://images.unsplash.com/photo-1518049362265-d5b2a6467637?auto=format&fit=crop&w=600&q=80" alt="Calçados">
+          <div class="cat-card__label">Calçados</div>
+        </a>
+        <a href="#" class="cat-card">
+          <img src="https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=600&q=80" alt="Acessórios">
+          <div class="cat-card__label">Acessórios</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured collection -->
+  <section class="products" id="colecao">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Destaques</span>
+        <h2>Peças da nova coleção</h2>
+        <p class="section-sub">Selecionamos os looks mais desejados da temporada.</p>
+      </div>
+
+      <div class="product-grid">
+        <article class="product-card">
+          <div class="product-card__image">
+            <img src="https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80" alt="Vestido floral">
+            <span class="badge">Novo</span>
+            <button class="wishlist" aria-label="Adicionar aos favoritos"><i class="fa-regular fa-heart"></i></button>
+          </div>
+          <div class="product-card__info">
+            <h3>Vestido Floral Ísis</h3>
+            <p class="price"><span class="price--old">R$ 259,90</span> R$ 189,90</p>
+            <button class="btn btn--small">Adicionar à sacola</button>
+          </div>
+        </article>
+
+        <article class="product-card">
+          <div class="product-card__image">
+            <img src="https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=600&q=80" alt="Jaqueta jeans">
+            <button class="wishlist" aria-label="Adicionar aos favoritos"><i class="fa-regular fa-heart"></i></button>
+          </div>
+          <div class="product-card__info">
+            <h3>Jaqueta Jeans Urban</h3>
+            <p class="price">R$ 219,90</p>
+            <button class="btn btn--small">Adicionar à sacola</button>
+          </div>
+        </article>
+
+        <article class="product-card">
+          <div class="product-card__image">
+            <img src="https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=80" alt="Tênis branco">
+            <span class="badge badge--sale">-20%</span>
+            <button class="wishlist" aria-label="Adicionar aos favoritos"><i class="fa-regular fa-heart"></i></button>
+          </div>
+          <div class="product-card__info">
+            <h3>Tênis Minimal White</h3>
+            <p class="price"><span class="price--old">R$ 349,90</span> R$ 279,90</p>
+            <button class="btn btn--small">Adicionar à sacola</button>
+          </div>
+        </article>
+
+        <article class="product-card">
+          <div class="product-card__image">
+            <img src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=600&q=80" alt="Bolsa de couro">
+            <button class="wishlist" aria-label="Adicionar aos favoritos"><i class="fa-regular fa-heart"></i></button>
+          </div>
+          <div class="product-card__info">
+            <h3>Bolsa Couro Vicenza</h3>
+            <p class="price">R$ 329,90</p>
+            <button class="btn btn--small">Adicionar à sacola</button>
+          </div>
+        </article>
+      </div>
+
+      <div class="products__cta">
+        <a href="#" class="btn btn--outline">Ver coleção completa</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Promo banner -->
+  <section class="promo">
+    <div class="container promo__inner">
+      <div class="promo__text">
+        <span class="eyebrow eyebrow--light">Oferta por tempo limitado</span>
+        <h2>Até 40% OFF em peças selecionadas</h2>
+        <p>Use o cupom <strong>FASHION10</strong> e ganhe 10% extra na primeira compra.</p>
+        <a href="#" class="btn btn--primary">Aproveitar oferta</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Advantages -->
+  <section class="advantages" id="vantagens">
+    <div class="container">
+      <div class="adv-grid">
+        <div class="adv-card">
+          <i class="fa-solid fa-truck-fast"></i>
+          <h3>Entrega rápida</h3>
+          <p>Envio para todo o Brasil com rastreamento em tempo real.</p>
+        </div>
+        <div class="adv-card">
+          <i class="fa-solid fa-rotate-left"></i>
+          <h3>Troca fácil</h3>
+          <p>30 dias para troca ou devolução, sem burocracia.</p>
+        </div>
+        <div class="adv-card">
+          <i class="fa-solid fa-lock"></i>
+          <h3>Pagamento seguro</h3>
+          <p>Compre com total segurança em até 10x sem juros.</p>
+        </div>
+        <div class="adv-card">
+          <i class="fa-solid fa-headset"></i>
+          <h3>Atendimento humano</h3>
+          <p>Nossa equipe está pronta pra te ajudar todos os dias.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="testimonials" id="depoimentos">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Depoimentos</span>
+        <h2>Quem compra, ama</h2>
+      </div>
+      <div class="testi-grid">
+        <blockquote class="testi-card">
+          <div class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+          <p>"Qualidade incrível e entrega super rápida. Já é minha loja favorita de roupas!"</p>
+          <cite>Marina Alves</cite>
+        </blockquote>
+        <blockquote class="testi-card">
+          <div class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+          <p>"Atendimento nota 10 e as peças são ainda mais bonitas de perto. Recomendo!"</p>
+          <cite>Rafael Souza</cite>
+        </blockquote>
+        <blockquote class="testi-card">
+          <div class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star-half-stroke"></i></div>
+          <p>"Preço justo, caimento perfeito e troca sem dor de cabeça. Voltarei a comprar!"</p>
+          <cite>Juliana Prado</cite>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="newsletter" id="newsletter">
+    <div class="container newsletter__inner">
+      <h2>Fique por dentro das novidades</h2>
+      <p>Cadastre seu e-mail e receba ofertas exclusivas em primeira mão.</p>
+      <form class="newsletter__form" id="newsletterForm">
+        <input type="email" placeholder="Seu melhor e-mail" required aria-label="E-mail">
+        <button type="submit" class="btn btn--primary">Quero receber</button>
+      </form>
+      <p class="newsletter__msg" id="newsletterMsg" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer__grid">
+      <div class="footer__brand">
+        <a href="#top" class="logo">Fashion<span>Corner</span></a>
+        <p>Moda acessível, com estilo e atitude para todos os momentos.</p>
+        <div class="socials">
+          <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+          <a href="#" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+          <a href="#" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+        </div>
+      </div>
+
+      <div class="footer__col">
+        <h4>Institucional</h4>
+        <a href="#">Sobre nós</a>
+        <a href="#">Trabalhe conosco</a>
+        <a href="#">Política de privacidade</a>
+        <a href="#">Termos de uso</a>
+      </div>
+
+      <div class="footer__col">
+        <h4>Ajuda</h4>
+        <a href="#">Trocas e devoluções</a>
+        <a href="#">Formas de pagamento</a>
+        <a href="#">Prazo de entrega</a>
+        <a href="#">Fale conosco</a>
+      </div>
+
+      <div class="footer__col">
+        <h4>Contato</h4>
+        <a href="mailto:contato@fashioncorner.com.br"><i class="fa-regular fa-envelope"></i> contato@fashioncorner.com.br</a>
+        <a href="tel:+5500000000000"><i class="fa-solid fa-phone"></i> (00) 00000-0000</a>
+        <a href="#"><i class="fa-solid fa-location-dot"></i> Sua cidade, Brasil</a>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p>&copy; <span id="year"></span> Fashion Corner. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <button class="back-to-top" id="backToTop" aria-label="Voltar ao topo"><i class="fa-solid fa-arrow-up"></i></button>
+
+  <script src="assets/js/script.js"></script>
+</body>
+</html>
