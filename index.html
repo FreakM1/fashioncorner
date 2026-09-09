@@ -111,6 +111,9 @@
   .edit-actions .save-btn:hover{background:var(--wine-dark);}
   .route-link{display:block;margin-top:12px;padding:11px 14px;background:var(--paper-2);border-radius:10px;font-size:13px;text-decoration:none;color:var(--wine);font-weight:600;text-align:center;}
   .route-link:hover{background:#F1E0E4;}
+  .organize-btn{display:block;width:100%;margin-top:12px;padding:11px 14px;border-radius:10px;font-size:13px;font-family:'Work Sans',sans-serif;font-weight:600;text-align:center;background:#fff;border:1.5px solid var(--wine);color:var(--wine);cursor:pointer;}
+  .organize-btn:hover{background:#FBF0F2;}
+  .organize-btn:disabled{opacity:.6;cursor:not-allowed;}
   .note{margin-top:0;font-size:12px;color:var(--muted);line-height:1.5;}
   .card.note-card{background:var(--paper-2);border:none;}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;opacity:0;transition:all .25s;pointer-events:none;font-family:'Work Sans',sans-serif;z-index:50;}
@@ -270,6 +273,7 @@
         <div id="ordersList">
           <div class="empty-state">Nenhuma parada adicionada ainda.</div>
         </div>
+        <button class="organize-btn" id="organizeBtn" style="display:none;">Organizar rota</button>
         <a href="#" target="_blank" class="route-link" id="routeLink" style="display:none;">Abrir rota no Google Maps →</a>
       </div>
 
@@ -309,6 +313,13 @@ const firebaseConfig = {
   messagingSenderId: "87444520790",
   appId: "1:87444520790:web:a3bb5e54582b5d694ce0f7"
 };
+
+// Chave usada para chamar a Routes API do Google (otimização de rota).
+// O placeholder abaixo é substituído em tempo de deploy pelo valor da
+// variável de ambiente GOOGLE_MAPS_API_KEY (ver docker-entrypoint.d/).
+// Restrinja essa chave por referenciador HTTP no Google Cloud Console e
+// habilite a "Routes API" no projeto correspondente.
+const GOOGLE_MAPS_API_KEY = "__GOOGLE_MAPS_API_KEY__";
 
 let LIVE = false;
 let db = null;
@@ -424,6 +435,7 @@ const ordersListEl = document.getElementById('ordersList');
 const ordersTotal = document.getElementById('ordersTotal');
 const toast = document.getElementById('toast');
 const routeLink = document.getElementById('routeLink');
+const organizeBtn = document.getElementById('organizeBtn');
 
 function norm(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
 function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
@@ -704,6 +716,7 @@ function renderOrders(){
   if(orders.length === 0){
     ordersListEl.innerHTML = '<div class="empty-state">Nenhuma parada adicionada ainda.</div>';
     routeLink.style.display = 'none';
+    organizeBtn.style.display = 'none';
     return;
   }
   ordersListEl.innerHTML = orders.map((o, i) => {
@@ -739,6 +752,7 @@ function renderOrders(){
   const url = 'https://www.google.com/maps/dir/' + orders.map(o => encodeURIComponent(o.address)).join('/');
   routeLink.href = url;
   routeLink.style.display = 'block';
+  organizeBtn.style.display = 'block';
   attachDragHandlers();
 }
 
@@ -835,6 +849,71 @@ function saveEditOrder(i){
 
 function moveOrder(i, dir){ const j=i+dir; if(j<0||j>=orders.length) return; [orders[i],orders[j]]=[orders[j],orders[i]]; renderOrders(); saveOrders(); }
 function removeOrder(i){ orders.splice(i,1); renderOrders(); saveOrders(); }
+
+// ---------- ORGANIZAR ROTA (Google Routes API) ----------
+async function organizeRoute(){
+  if(!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY.startsWith('__')){
+    showToast('Configure a variável de ambiente GOOGLE_MAPS_API_KEY no servidor');
+    return;
+  }
+
+  if(orders.length < 3){
+    showToast('Adicione pelo menos 3 paradas para organizar a rota');
+    return;
+  }
+
+  const origin = orders[0];
+  const destination = orders[orders.length - 1];
+  const intermediates = orders.slice(1, -1);
+
+  if(intermediates.length < 2){
+    showToast('Rota já está na melhor ordem possível');
+    return;
+  }
+
+  organizeBtn.disabled = true;
+  const originalLabel = organizeBtn.textContent;
+  organizeBtn.textContent = 'Organizando...';
+
+  try {
+    const res = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+        'X-Goog-FieldMask': 'routes.optimizedIntermediateWaypointIndex'
+      },
+      body: JSON.stringify({
+        origin: { address: origin.address },
+        destination: { address: destination.address },
+        intermediates: intermediates.map(o => ({ address: o.address })),
+        travelMode: 'DRIVE',
+        optimizeWaypointOrder: true
+      })
+    });
+
+    if(!res.ok){
+      const errBody = await res.json().catch(() => null);
+      throw new Error(errBody?.error?.message || `Erro ${res.status} na Routes API`);
+    }
+
+    const data = await res.json();
+    const order = data.routes?.[0]?.optimizedIntermediateWaypointIndex;
+    const orderedIntermediates = Array.isArray(order) ? order.map(idx => intermediates[idx]) : intermediates;
+
+    orders = [origin, ...orderedIntermediates, destination];
+    renderOrders();
+    saveOrders();
+    showToast('Rota organizada!');
+  } catch(e){
+    showToast('Não foi possível organizar a rota: ' + e.message);
+  } finally {
+    organizeBtn.disabled = false;
+    organizeBtn.textContent = originalLabel;
+  }
+}
+
+organizeBtn.addEventListener('click', organizeRoute);
 
 // ---------- ARRASTAR PARA REORDENAR ----------
 let dragState = null;
