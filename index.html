@@ -99,7 +99,8 @@
   .mini-btn:hover{border-color:var(--wine);color:var(--wine);}
   .drag-handle{cursor:grab;touch-action:none;color:var(--muted);font-size:15px;padding:0 4px;user-select:none;line-height:1;}
   .drag-handle:active{cursor:grabbing;}
-  .ticket.dragging{opacity:.45;}
+  .ticket.dragging{position:fixed;z-index:200;pointer-events:none;cursor:grabbing;box-shadow:0 18px 36px -12px rgba(42,36,32,.35);transform:rotate(1.5deg);margin:0;}
+  .ticket-placeholder{border:1.5px dashed var(--gold);border-radius:10px;margin-bottom:10px;background:var(--paper-2);}
   .edit-form{width:100%;}
   .edit-form select, .edit-form textarea{margin-top:6px;}
   .edit-pill{padding:7px 12px;border-radius:20px;border:1.5px solid var(--line);background:#fff;font-size:12.5px;font-weight:500;cursor:pointer;}
@@ -925,28 +926,57 @@ function attachDragHandlers(){
 function onDragStart(e){
   const ticket = e.target.closest('.ticket');
   if(!ticket) return;
-  dragState = { ticket };
+  const rect = ticket.getBoundingClientRect();
+
+  const placeholder = document.createElement('div');
+  placeholder.className = 'ticket-placeholder';
+  placeholder.style.height = rect.height + 'px';
+  ticket.parentNode.insertBefore(placeholder, ticket);
+
+  dragState = {
+    ticket,
+    placeholder,
+    offsetX: e.clientX - rect.left,
+    offsetY: e.clientY - rect.top
+  };
+
+  ticket.style.width = rect.width + 'px';
+  ticket.style.left = rect.left + 'px';
+  ticket.style.top = rect.top + 'px';
   ticket.classList.add('dragging');
+
   document.addEventListener('pointermove', onDragMove);
   document.addEventListener('pointerup', onDragEnd);
   e.preventDefault();
 }
 function onDragMove(e){
   if(!dragState) return;
+  const { ticket, placeholder, offsetX, offsetY } = dragState;
+
+  ticket.style.left = (e.clientX - offsetX) + 'px';
+  ticket.style.top = (e.clientY - offsetY) + 'px';
+
   const list = document.getElementById('ordersList');
   const tickets = Array.from(list.querySelectorAll('.ticket:not(.dragging)'));
   const y = e.clientY;
   let nextSibling = null;
   for(const t of tickets){
-    const rect = t.getBoundingClientRect();
-    if(y < rect.top + rect.height/2){ nextSibling = t; break; }
+    const r = t.getBoundingClientRect();
+    if(y < r.top + r.height/2){ nextSibling = t; break; }
   }
-  if(nextSibling) list.insertBefore(dragState.ticket, nextSibling);
-  else list.appendChild(dragState.ticket);
+  if(nextSibling) list.insertBefore(placeholder, nextSibling);
+  else list.appendChild(placeholder);
 }
 function onDragEnd(){
   if(!dragState) return;
-  dragState.ticket.classList.remove('dragging');
+  const { ticket, placeholder } = dragState;
+
+  placeholder.replaceWith(ticket);
+  ticket.classList.remove('dragging');
+  ticket.style.left = '';
+  ticket.style.top = '';
+  ticket.style.width = '';
+
   document.removeEventListener('pointermove', onDragMove);
   document.removeEventListener('pointerup', onDragEnd);
   const newIds = Array.from(document.getElementById('ordersList').querySelectorAll('.ticket')).map(t => t.dataset.orderId);
