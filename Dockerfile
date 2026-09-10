@@ -1,6 +1,8 @@
 FROM nginx:alpine
 
 COPY index.html /usr/share/nginx/html/index.html
+COPY planejamento.html /usr/share/nginx/html/planejamento.html
+COPY assets /usr/share/nginx/html/assets
 COPY docker-entrypoint.d/40-inject-google-maps-key.sh /docker-entrypoint.d/40-inject-google-maps-key.sh
 RUN chmod +x /docker-entrypoint.d/40-inject-google-maps-key.sh
 

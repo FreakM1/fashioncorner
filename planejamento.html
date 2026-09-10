@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planejamento da Rota — Pedido Rápido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2A2420; --paper:#FBF6F0; --paper-2:#F3EAE0;
+    --wine:#7B2D3E; --wine-dark:#5E212E; --gold:#B8923F;
+    --sage:#5C7A5E; --line:#E3D6C6; --muted:#8A7E70;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Work Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:900px;margin:0 auto;padding:28px 20px 60px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:22px;border-bottom:2px solid var(--ink);padding-bottom:14px;flex-wrap:wrap;}
+  header h1{font-family:'Fraunces',serif;font-weight:600;font-size:26px;margin:0;letter-spacing:-0.01em;}
+  header .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+  .link-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;background:none;border:none;color:var(--wine);cursor:pointer;text-decoration:underline;padding:0;white-space:nowrap;margin-left:10px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;}
+  .section-title{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--wine);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+  .section-title::after{content:'';flex:1;height:1px;background:var(--line);}
+  label.f-label{display:block;font-size:11.5px;color:var(--muted);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.04em;}
+  input[type=text],input[type=time],input[type=number]{
+    width:100%;font-family:'Work Sans',sans-serif;font-size:14.5px;padding:11px 13px;
+    border:1.5px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);outline:none;transition:border-color .15s;
+  }
+  input:focus{border-color:var(--wine);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .add-btn{margin-top:16px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--ink);color:#fff;font-family:'Work Sans',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;transition:background .15s;}
+  .add-btn:disabled{background:#D8CFC3;cursor:not-allowed;}
+  .add-btn:not(:disabled):hover{background:var(--wine-dark);}
+  .empty-state{text-align:center;padding:36px 10px;color:var(--muted);font-size:13.5px;}
+  .banner{border:1.5px solid var(--gold);background:#FBF3E2;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:18px;}
+  .summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  @media (max-width:560px){.summary-grid{grid-template-columns:1fr;}}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:10px 14px;}
+  .stat .stat-label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .stat .stat-value{font-family:'Fraunces',serif;font-size:19px;margin-top:2px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;color:var(--muted);letter-spacing:.04em;padding:8px 10px;border-bottom:1.5px solid var(--line);}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);}
+  tr.violated td{background:#FBF0F2;color:var(--wine-dark);font-weight:600;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;opacity:0;transition:all .25s;pointer-events:none;font-family:'Work Sans',sans-serif;z-index:50;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Planejamento da Rota</h1>
+    <a href="index.html" class="link-btn">← Pedido Rápido</a>
+  </header>
+
+  <div id="emptyState" class="card empty-state" style="display:none;">
+    Nenhuma rota finalizada ainda. Vá até o Pedido Rápido, organize a rota e clique em "Finalizar rota".
+  </div>
+
+  <div id="calcSection" style="display:none;">
+    <div id="staleBanner" class="banner" style="display:none;">
+      A rota mudou no Pedido Rápido desde a última finalização. O relatório abaixo pode estar desatualizado —
+      volte lá, reorganize e finalize de novo, depois recalcule aqui.
+    </div>
+
+    <div class="card">
+      <div class="section-title">Configuração do dia</div>
+      <label class="f-label">Horário de saída do motoboy</label>
+      <input type="time" id="saidaInput" style="max-width:160px;">
+      <div class="two-col" style="margin-top:8px;">
+        <div>
+          <label class="f-label">Tempo padrão por parada (minutos)</label>
+          <input type="number" id="tempoPadraoInput" min="0">
+        </div>
+        <div>
+          <label class="f-label">Tempo de prova na hora (minutos)</label>
+          <input type="number" id="tempoProvaInput" min="0">
+        </div>
+      </div>
+      <button class="add-btn" id="calcBtn">Calcular planejamento</button>
+    </div>
+
+    <div id="reportSection" style="display:none;">
+      <div class="card">
+        <div class="section-title">Resumo da rota</div>
+        <div class="summary-grid">
+          <div class="stat"><div class="stat-label">Saída</div><div class="stat-value" id="summarySaida"></div></div>
+          <div class="stat"><div class="stat-label">Retorno previsto</div><div class="stat-value" id="summaryRetorno"></div></div>
+          <div class="stat"><div class="stat-label">Paradas</div><div class="stat-value" id="summaryParadas"></div></div>
+          <div class="stat"><div class="stat-label">Provas na hora</div><div class="stat-value" id="summaryProvas"></div></div>
+          <div class="stat"><div class="stat-label">Distância total</div><div class="stat-value" id="summaryDistancia"></div></div>
+          <div class="stat"><div class="stat-label">Tempo dirigindo</div><div class="stat-value" id="summaryDirigindo"></div></div>
+          <div class="stat"><div class="stat-label">Tempo das paradas padrão</div><div class="stat-value" id="summaryParadasTempo"></div></div>
+          <div class="stat"><div class="stat-label">Tempo adicional das provas</div><div class="stat-value" id="summaryProvasTempo"></div></div>
+          <div class="stat"><div class="stat-label">Tempo total parado</div><div class="stat-value" id="summaryParado"></div></div>
+          <div class="stat"><div class="stat-label">Duração total da rota</div><div class="stat-value" id="summaryTotal"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Relatório por entrega</div>
+        <table>
+          <thead><tr><th>Ordem</th><th>Cliente</th><th>Chegada estimada</th><th>Horário</th></tr></thead>
+          <tbody id="reportBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="assets/shared.js"></script>
+<script>
+let currentFinalized = null;
+let currentReport = null;
+let currentConfig = { saida:'', tempoPadrao:3, tempoProva:20 };
+
+const toast = document.getElementById('toast');
+function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
+
+function fmtTime(minutesFromMidnight){
+  const totalMin = Math.round(minutesFromMidnight);
+  const h = Math.floor(totalMin / 60) % 24;
+  const m = ((totalMin % 60) + 60) % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+function timeToMinutes(hhmm){
+  if(!hhmm) return null;
+  const [h,m] = hhmm.split(':').map(Number);
+  return h*60+m;
+}
+function fmtDuration(totalMin){
+  const h = Math.floor(totalMin/60);
+  const m = Math.round(totalMin%60);
+  if(h<=0) return m + 'min';
+  return h + 'h' + String(m).padStart(2,'0');
+}
+function fmtKm(meters){ return (meters/1000).toFixed(1).replace('.', ',') + ' km'; }
+function serviceTimeFor(o, cfg){
+  return cfg.tempoPadrao + (hasMode(o.modes, 'PROVA NA HORA') ? cfg.tempoProva : 0);
+}
+
+async function init(){
+  await ensureAuth();
+  currentFinalized = await loadDoc(finalizedKey(), null);
+  currentConfig = await loadDoc(configKey(), currentConfig);
+  currentReport = await loadDoc(reportKey(), null);
+
+  document.getElementById('saidaInput').value = currentConfig.saida || '';
+  document.getElementById('tempoPadraoInput').value = currentConfig.tempoPadrao;
+  document.getElementById('tempoProvaInput').value = currentConfig.tempoProva;
+
+  if(!currentFinalized){
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('calcSection').style.display = 'none';
+    return;
+  }
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('calcSection').style.display = 'block';
+
+  const liveOrders = await loadDoc(todayKey(), []);
+  const stale = JSON.stringify(currentFinalized.orders) !== JSON.stringify(liveOrders);
+  document.getElementById('staleBanner').style.display = stale ? 'block' : 'none';
+
+  if(currentReport && currentReport.report){
+    renderReport(currentReport.report);
+  }
+}
+
+async function saveConfig(){
+  currentConfig = {
+    saida: document.getElementById('saidaInput').value,
+    tempoPadrao: parseInt(document.getElementById('tempoPadraoInput').value, 10) || 0,
+    tempoProva: parseInt(document.getElementById('tempoProvaInput').value, 10) || 0
+  };
+  await saveDoc(configKey(), currentConfig);
+}
+document.getElementById('saidaInput').addEventListener('change', saveConfig);
+document.getElementById('tempoPadraoInput').addEventListener('change', saveConfig);
+document.getElementById('tempoProvaInput').addEventListener('change', saveConfig);
+
+document.getElementById('calcBtn').addEventListener('click', calcularPlanejamento);
+
+async function calcularPlanejamento(){
+  if(!currentFinalized){ showToast('Finalize uma rota no Pedido Rápido primeiro'); return; }
+  if(!currentConfig.saida){
+    document.getElementById('saidaInput').focus();
+    showToast('Informe o horário de saída');
+    return;
+  }
+
+  await saveConfig();
+
+  const calcBtn = document.getElementById('calcBtn');
+  calcBtn.disabled = true;
+  const originalLabel = calcBtn.textContent;
+  calcBtn.textContent = 'Calculando...';
+
+  try {
+    const ordersSnapshot = currentFinalized.orders;
+    if(ordersSnapshot.length < 2){
+      showToast('A rota finalizada precisa ter pelo menos 2 paradas');
+      return;
+    }
+
+    const sameOrders = currentReport && JSON.stringify(currentReport.forOrders) === JSON.stringify(ordersSnapshot);
+    let legs = sameOrders ? currentReport.legs : null;
+
+    if(!legs){
+      if(!hasGoogleMapsKey()){
+        showToast('Configure a variável de ambiente GOOGLE_MAPS_API_KEY no servidor');
+        return;
+      }
+      const addresses = ordersSnapshot.map(o => o.address);
+      const data = await computeRoutesRequest({
+        origin: addresses[0],
+        destination: addresses[addresses.length - 1],
+        intermediates: addresses.slice(1, -1),
+        optimizeWaypointOrder: false,
+        fieldMask: 'routes.legs.duration,routes.legs.distanceMeters,routes.duration,routes.distanceMeters'
+      });
+      const route = data.routes && data.routes[0];
+      if(!route || !route.legs){ throw new Error('A API não retornou os trechos da rota'); }
+      legs = route.legs.map(l => ({
+        durationSec: parseInt(l.duration, 10) || 0,
+        distanceMeters: l.distanceMeters || 0
+      }));
+    }
+
+    const report = buildReport(ordersSnapshot, legs, currentConfig);
+    currentReport = { forOrders: ordersSnapshot, legs, config: currentConfig, report, computedAt: Date.now() };
+    await saveDoc(reportKey(), currentReport);
+    renderReport(report);
+    showToast('Planejamento calculado!');
+  } catch(e){
+    showToast('Não foi possível calcular: ' + e.message);
+  } finally {
+    calcBtn.disabled = false;
+    calcBtn.textContent = originalLabel;
+  }
+}
+
+function buildReport(ordersSnapshot, legs, cfg){
+  const saidaMin = timeToMinutes(cfg.saida);
+  let eta = saidaMin;
+  const rows = [];
+  let totalDistance = 0;
+  let totalDriving = 0;
+  let totalService = 0;
+  let totalProva = 0;
+  let provaCount = 0;
+
+  for(let i = 0; i < ordersSnapshot.length; i++){
+    const o = ordersSnapshot[i];
+    if(i > 0){
+      const leg = legs[i-1];
+      totalDistance += leg.distanceMeters;
+      totalDriving += leg.durationSec / 60;
+      eta += leg.durationSec / 60;
+    }
+    const isEdge = (i === 0 || i === ordersSnapshot.length - 1);
+    const tw = o.timeWindow;
+    let violated = false;
+    if(tw && tw.type !== 'none' && tw.time){
+      const limit = timeToMinutes(tw.time);
+      if(tw.type === 'before' && eta > limit) violated = true;
+      if(tw.type === 'after' && eta < limit) violated = true;
+    }
+    rows.push({
+      order: i+1, name: o.name,
+      etaLabel: fmtTime(eta), timeWindowLabel: timeWindowLabel(tw), violated
+    });
+
+    if(!isEdge){
+      if(hasMode(o.modes, 'PROVA NA HORA')){ totalProva += cfg.tempoProva; provaCount++; }
+      totalService += cfg.tempoPadrao;
+      eta += serviceTimeFor(o, cfg);
+    }
+  }
+
+  const paradas = ordersSnapshot.length - 2;
+  return {
+    saida: cfg.saida,
+    retornoLabel: fmtTime(eta),
+    paradas: paradas > 0 ? paradas : 0,
+    provaCount,
+    totalDistance,
+    totalDriving,
+    totalService,
+    totalProva,
+    totalParado: totalService + totalProva,
+    totalRota: totalDriving + totalService + totalProva,
+    rows
+  };
+}
+
+function renderReport(report){
+  document.getElementById('summarySaida').textContent = report.saida;
+  document.getElementById('summaryRetorno').textContent = report.retornoLabel;
+  document.getElementById('summaryParadas').textContent = report.paradas;
+  document.getElementById('summaryProvas').textContent = report.provaCount;
+  document.getElementById('summaryDistancia').textContent = fmtKm(report.totalDistance);
+  document.getElementById('summaryDirigindo').textContent = fmtDuration(report.totalDriving);
+  document.getElementById('summaryParadasTempo').textContent = fmtDuration(report.totalService);
+  document.getElementById('summaryProvasTempo').textContent = fmtDuration(report.totalProva);
+  document.getElementById('summaryParado').textContent = fmtDuration(report.totalParado);
+  document.getElementById('summaryTotal').textContent = fmtDuration(report.totalRota);
+
+  document.getElementById('reportBody').innerHTML = report.rows.map(r => `
+    <tr class="${r.violated ? 'violated' : ''}">
+      <td>${r.order}</td>
+      <td>${r.name}</td>
+      <td>${r.etaLabel}</td>
+      <td>${r.timeWindowLabel || '—'}</td>
+    </tr>`).join('');
+
+  document.getElementById('reportSection').style.display = 'block';
+}
+
+init();
+</script>
+</body>
+</html>
