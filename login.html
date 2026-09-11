@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar — Fashion Corner</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .auth-wrap{width:100%;max-width:400px;}
+  .auth-logo{text-align:center;font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin-bottom:22px;}
+  .auth-logo span{color:var(--wine);}
+  .auth-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px;}
+  .auth-tabs{display:flex;gap:6px;background:var(--paper-2);border-radius:10px;padding:4px;margin-bottom:20px;}
+  .auth-tabs button{flex:1;border:none;background:transparent;padding:9px 0;border-radius:8px;font-family:'Work Sans',sans-serif;font-weight:600;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;}
+  .auth-tabs button.active{background:#fff;color:var(--wine);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .auth-title{font-family:'Fraunces',serif;font-size:19px;font-weight:600;margin:0 0 4px;}
+  .auth-sub{font-size:12.5px;color:var(--muted);margin:0 0 18px;}
+  #authForm .btn{width:100%;margin-top:14px;padding:12px;font-size:14px;}
+  .divider{display:flex;align-items:center;gap:10px;margin:18px 0;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+  .btn-google{width:100%;background:#fff;border:1.5px solid var(--line);color:var(--ink);padding:11px;font-size:13.5px;display:flex;align-items:center;justify-content:center;gap:10px;}
+  .btn-google:hover{background:var(--paper-2);}
+  .btn-google svg{width:17px;height:17px;flex-shrink:0;}
+  .auth-error{background:#FBEAE8;color:var(--danger);border-radius:8px;padding:9px 12px;font-size:12.5px;margin-bottom:14px;display:none;}
+  .auth-note{background:#FBF3E2;color:#8A6A1F;border-radius:8px;padding:9px 12px;font-size:12.5px;margin-bottom:14px;display:none;}
+  .back-link{display:block;text-align:center;margin-top:16px;font-size:12.5px;color:var(--muted);text-decoration:none;}
+  .config-warning{max-width:400px;margin:0 auto 16px;background:#FBEAE8;color:var(--danger);border-radius:10px;padding:12px 14px;font-size:12.5px;display:none;}
+</style>
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-logo">FASHION<span>CORNER</span></div>
+
+  <div class="config-warning" id="configWarning">
+    Conexão com o Supabase não configurada. Defina as variáveis de ambiente
+    <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no deploy.
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button type="button" id="tabLogin" class="active">Entrar</button>
+      <button type="button" id="tabSignup">Criar conta</button>
+    </div>
+
+    <h1 class="auth-title" id="authTitle">Bem-vindo de volta</h1>
+    <p class="auth-sub" id="authSub">Entre com seu e-mail e senha.</p>
+
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-note" id="authNote"></div>
+
+    <button type="button" class="btn btn-google" id="googleBtn">
+      <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.3 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l5.7-5.7C33.8 6.8 29.1 5 24 5 13.5 5 5 13.5 5 24s8.5 19 19 19 19-8.5 19-19c0-1.3-.1-2.5-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c2.8 0 5.3 1 7.3 2.7l5.7-5.7C33.8 6.8 29.1 5 24 5c-7.6 0-14.1 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 43c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 34.1 26.7 35 24 35c-5.3 0-9.7-2.7-11.3-7l-6.6 5.1C9.8 38.7 16.3 43 24 43z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.3 4.1-4.1 5.6l6.2 5.2C40.9 35.9 43 30.3 43 24c0-1.3-.1-2.5-.4-3.5z"/></svg>
+      Continuar com Google
+    </button>
+
+    <div class="divider">ou</div>
+
+    <form id="authForm">
+      <label class="f-label">E-mail</label>
+      <input type="text" id="email" placeholder="voce@loja.com" autocomplete="email" required>
+      <label class="f-label">Senha</label>
+      <input type="text" id="password" placeholder="••••••••" autocomplete="current-password" required style="font-family:text-security-disc;" >
+      <button type="submit" class="btn btn-primary" id="submitBtn">Entrar</button>
+    </form>
+  </div>
+
+  <a href="index.html" class="back-link">&larr; Voltar</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script>
+// senha precisa de type=password de verdade — o atributo acima foi só um
+// placeholder de estilo, corrige o type via JS pra não conflitar com o CSS.
+document.getElementById('password').type = 'password';
+
+let mode = new URLSearchParams(location.search).get('mode') === 'signup' ? 'signup' : 'login';
+
+const els = {
+  tabLogin: document.getElementById('tabLogin'),
+  tabSignup: document.getElementById('tabSignup'),
+  title: document.getElementById('authTitle'),
+  sub: document.getElementById('authSub'),
+  submitBtn: document.getElementById('submitBtn'),
+  error: document.getElementById('authError'),
+  note: document.getElementById('authNote'),
+  form: document.getElementById('authForm'),
+  googleBtn: document.getElementById('googleBtn'),
+  configWarning: document.getElementById('configWarning'),
+};
+
+function applyMode(){
+  const isSignup = mode === 'signup';
+  els.tabLogin.classList.toggle('active', !isSignup);
+  els.tabSignup.classList.toggle('active', isSignup);
+  els.title.textContent = isSignup ? 'Criar conta' : 'Bem-vindo de volta';
+  els.sub.textContent = isSignup ? 'Cadastre seu e-mail e uma senha.' : 'Entre com seu e-mail e senha.';
+  els.submitBtn.textContent = isSignup ? 'Criar conta' : 'Entrar';
+  els.error.style.display = 'none';
+  els.note.style.display = 'none';
+}
+els.tabLogin.addEventListener('click', () => { mode = 'login'; applyMode(); });
+els.tabSignup.addEventListener('click', () => { mode = 'signup'; applyMode(); });
+applyMode();
+
+function showError(msg){ els.error.textContent = msg; els.error.style.display = 'block'; els.note.style.display = 'none'; }
+function showNote(msg){ els.note.textContent = msg; els.note.style.display = 'block'; els.error.style.display = 'none'; }
+
+if(!sb){
+  els.configWarning.style.display = 'block';
+  els.form.querySelectorAll('input,button').forEach(el => el.disabled = true);
+  els.googleBtn.disabled = true;
+} else {
+  sb.auth.getSession().then(({ data }) => { if(data.session) location.href = 'dashboard.html'; });
+}
+
+els.form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if(!sb) return;
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  els.submitBtn.disabled = true;
+  try {
+    if(mode === 'signup'){
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if(error) throw error;
+      if(data.session){
+        location.href = 'dashboard.html';
+      } else {
+        showNote('Conta criada! Verifique seu e-mail para confirmar o acesso.');
+      }
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+      location.href = 'dashboard.html';
+    }
+  } catch(err){
+    showError(err.message || 'Não foi possível concluir. Tente novamente.');
+  } finally {
+    els.submitBtn.disabled = false;
+  }
+});
+
+els.googleBtn.addEventListener('click', async () => {
+  if(!sb) return;
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: location.origin + '/dashboard.html' }
+  });
+  if(error) showError(error.message);
+});
+</script>
+</body>
+</html>

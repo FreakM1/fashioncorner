@@ -1,7 +1,7 @@
 // Shell de navegação (sidebar + topbar) compartilhado por todas as
 // páginas do painel. Cada página só chama renderShell({active, title, subtitle}).
 const NAV_ITEMS = [
-  { key: 'dashboard', href: 'index.html', icon: '&#9635;', label: 'Dashboard' },
+  { key: 'dashboard', href: 'dashboard.html', icon: '&#9635;', label: 'Dashboard' },
   { key: 'pedido', href: 'pedido-rapido.html', icon: '&#9998;', label: 'Pedido Rápido' },
   { key: 'rota', href: 'rota-do-dia.html', icon: '&#9679;', label: 'Rota do Dia' },
   { key: 'planejamento', href: 'planejamento.html', icon: '&#9201;', label: 'Planejamento' },
@@ -31,6 +31,13 @@ function renderShell({ active, title, subtitle }){
     </div>
     <div class="topbar-right">
       <div class="topbar-date">${dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</div>
-      <div class="avatar">FC</div>
+      <div class="avatar" id="logoutBtn" title="Sair">FC</div>
     </div>`;
+
+  const logoutBtn = document.getElementById('logoutBtn');
+  logoutBtn.style.cursor = 'pointer';
+  logoutBtn.addEventListener('click', async () => {
+    if(typeof sb !== 'undefined' && sb) await sb.auth.signOut();
+    location.href = 'login.html';
+  });
 }

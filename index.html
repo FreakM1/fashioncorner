@@ -3,150 +3,117 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard</title>
+<title>Fashion Corner — Pedido Rápido</title>
 <link rel="stylesheet" href="assets/styles.css">
 <style>
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
-  @media (max-width:900px){.grid2{grid-template-columns:1fr;}}
-  .bar-chart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:6px;}
-  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
-  .bar{width:100%;max-width:26px;background:var(--wine);border-radius:5px 5px 0 0;min-height:2px;}
-  .bar-day{font-size:10.5px;color:var(--muted);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
-  .promo-card{background:linear-gradient(135deg,var(--wine) 0%,var(--wine-dark) 100%);color:#fff;border-radius:14px;padding:22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
-  .promo-card h3{font-family:'Fraunces',serif;font-size:19px;margin:0;font-weight:600;}
+  .lp-nav{display:flex;align-items:center;justify-content:space-between;padding:22px 6vw;max-width:1200px;margin:0 auto;}
+  .lp-nav .logo{font-family:'Fraunces',serif;font-weight:600;font-size:19px;}
+  .lp-nav .logo span{color:var(--wine);}
+  .lp-nav .actions{display:flex;gap:10px;}
+
+  .lp-hero{max-width:1200px;margin:0 auto;padding:48px 6vw 70px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;}
+  .lp-hero h1{font-family:'Fraunces',serif;font-size:clamp(30px,4vw,46px);line-height:1.12;font-weight:600;margin:0 0 16px;}
+  .lp-hero h1 em{color:var(--wine);font-style:normal;}
+  .lp-hero p{font-size:15.5px;color:var(--muted);line-height:1.6;margin:0 0 26px;max-width:480px;}
+  .lp-hero .actions{display:flex;gap:12px;flex-wrap:wrap;}
+  .lp-hero .actions .btn{padding:13px 24px;font-size:14.5px;}
+
+  .lp-hero-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:0 18px 40px -20px rgba(42,36,32,.25);}
+  .lp-hero-card .row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .lp-hero-card .row:last-child{border-bottom:none;}
+  .lp-hero-card .row .tag{font-family:'IBM Plex Mono',monospace;font-size:10px;}
+
+  .lp-features{max-width:1200px;margin:0 auto;padding:10px 6vw 70px;}
+  .lp-features .kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--wine);margin-bottom:8px;}
+  .lp-features h2{font-family:'Fraunces',serif;font-size:26px;font-weight:600;margin:0 0 30px;}
+  .lp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  .lp-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;}
+  .lp-card .ic{font-size:20px;color:var(--wine);margin-bottom:12px;}
+  .lp-card h3{font-family:'Fraunces',serif;font-size:15.5px;font-weight:600;margin:0 0 6px;}
+  .lp-card p{font-size:12.5px;color:var(--muted);line-height:1.55;margin:0;}
+
+  .lp-cta{max-width:1200px;margin:0 auto 70px;padding:0 6vw;}
+  .lp-cta-inner{background:var(--ink);color:#fff;border-radius:18px;padding:40px 44px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+  .lp-cta-inner h3{font-family:'Fraunces',serif;font-size:21px;font-weight:600;margin:0 0 6px;}
+  .lp-cta-inner p{font-size:13px;color:#D8CFC5;margin:0;}
+
+  .lp-footer{text-align:center;padding:26px 6vw 40px;font-size:12px;color:var(--muted);}
+
+  @media (max-width:900px){
+    .lp-hero{grid-template-columns:1fr;}
+    .lp-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:520px){
+    .lp-grid{grid-template-columns:1fr;}
+    .lp-nav .actions .btn{padding:9px 14px;font-size:12.5px;}
+  }
 </style>
 </head>
 <body>
-<div class="app-shell">
-  <nav class="sidebar" id="sidebar"></nav>
-  <div class="main">
-    <header class="topbar" id="topbar"></header>
-    <div class="page">
 
-      <div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-label">Pedidos hoje</div><div class="kpi-value" id="kpiPedidos">0</div><div class="kpi-delta" id="kpiPedidosDelta"></div></div>
-        <div class="kpi-card"><div class="kpi-label">Entregues</div><div class="kpi-value" id="kpiEntregues">0</div><div class="kpi-delta" id="kpiEntreguesDelta"></div></div>
-        <div class="kpi-card"><div class="kpi-label">Pendentes</div><div class="kpi-value" id="kpiPendentes">0</div><div class="kpi-delta" id="kpiPendentesDelta"></div></div>
-        <div class="kpi-card"><div class="kpi-label">Km rodados hoje</div><div class="kpi-value" id="kpiKm">0 km</div></div>
-      </div>
+<nav class="lp-nav">
+  <div class="logo">FASHION<span>CORNER</span></div>
+  <div class="actions">
+    <a href="login.html" class="btn btn-ghost">Entrar</a>
+    <a href="login.html?mode=signup" class="btn btn-primary">Criar conta</a>
+  </div>
+</nav>
 
-      <div class="grid2">
-        <div class="card">
-          <div class="card-title">Rota do dia</div>
-          <div id="rotaAtualBody"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Resumo da semana</div>
-          <div class="bar-chart" id="weekChart"></div>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="promo-card">
-          <h3>Moda que movimenta histórias</h3>
-          <span style="font-size:22px;">♥</span>
-        </div>
-        <div class="card">
-          <div class="card-title">Última rota finalizada</div>
-          <div id="lastRouteBody"></div>
-        </div>
-      </div>
-
+<section class="lp-hero">
+  <div>
+    <h1>Organize as entregas do dia sem <em>planilha, sem bagunça</em>.</h1>
+    <p>Pedido rápido, rota otimizada por horário e endereço, e histórico completo de cada entrega — tudo em um painel só, pensado pra loja e pro motoboy.</p>
+    <div class="actions">
+      <a href="login.html?mode=signup" class="btn btn-primary">Criar conta grátis</a>
+      <a href="login.html" class="btn btn-outline">Já tenho conta</a>
     </div>
   </div>
-</div>
+  <div class="lp-hero-card">
+    <div class="row"><span>Cliente A — Vila Nova</span><span class="tag tag-progress">A caminho</span></div>
+    <div class="row"><span>Cliente B — Centro</span><span class="tag tag-pending">Pendente</span></div>
+    <div class="row"><span>Cliente C — Jardim Sul</span><span class="tag tag-delivered">Entregue</span></div>
+    <div class="row"><span>Rota do dia · 12 paradas</span><span class="tag tag-done">8,4 km</span></div>
+  </div>
+</section>
 
-<div class="toast" id="toast"></div>
+<section class="lp-features">
+  <div class="kicker">Como funciona</div>
+  <h2>Do pedido à entrega, em um fluxo só</h2>
+  <div class="lp-grid">
+    <div class="lp-card">
+      <div class="ic">&#9998;</div>
+      <h3>Pedido Rápido</h3>
+      <p>Cadastre cliente, endereço, tipo de atendimento e horário em segundos.</p>
+    </div>
+    <div class="lp-card">
+      <div class="ic">&#9679;</div>
+      <h3>Rota do Dia</h3>
+      <p>Reordene as paradas por arrastar e solte, com previsão de chegada em tempo real.</p>
+    </div>
+    <div class="lp-card">
+      <div class="ic">&#9201;</div>
+      <h3>Planejamento</h3>
+      <p>Defina saída, tempo por parada e tempo de prova — a rota se ajusta sozinha.</p>
+    </div>
+    <div class="lp-card">
+      <div class="ic">&#9776;</div>
+      <h3>Histórico</h3>
+      <p>Toda rota concluída fica disponível pra análise: km, entregas, trocas e mais.</p>
+    </div>
+  </div>
+</section>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="assets/shared.js"></script>
-<script src="assets/shell.js"></script>
-<script>
-renderShell({ active: 'dashboard', title: 'Dashboard', subtitle: 'Visão geral das entregas e rotas' });
+<section class="lp-cta">
+  <div class="lp-cta-inner">
+    <div>
+      <h3>Pronto pra organizar a rota de hoje?</h3>
+      <p>Crie sua conta e comece a usar o painel agora mesmo.</p>
+    </div>
+    <a href="login.html?mode=signup" class="btn btn-primary">Criar conta grátis</a>
+  </div>
+</section>
 
-function fmtDuration(totalMin){
-  const h = Math.floor(totalMin/60); const m = Math.round(totalMin%60);
-  if(h<=0) return m + 'min';
-  return h + 'h' + String(m).padStart(2,'0');
-}
+<div class="lp-footer">Fashion Corner · Painel de pedidos e rotas</div>
 
-async function init(){
-  await ensureAuth();
-  const today = dateSuffix();
-  const routes = await loadRoutesForDate(today);
-
-  let pedidos=0, entregues=0, pendentes=0, km=0;
-  for(const r of routes){
-    const s = summarizeRoute(r);
-    pedidos += s.paradas;
-    km += s.km;
-    pendentes += (r.orders||[]).slice(1,-1).filter(o => (o.status||'pendente')==='pendente').length;
-    entregues += (r.orders||[]).slice(1,-1).filter(o => o.status==='entregue').length;
-  }
-  const liveOrders = await loadDoc(todayKey(), []);
-  if(liveOrders.length > 2){
-    pedidos += liveOrders.length - 2;
-    pendentes += liveOrders.slice(1,-1).filter(o => (o.status||'pendente')==='pendente').length;
-  }
-  document.getElementById('kpiPedidos').textContent = pedidos;
-  document.getElementById('kpiEntregues').textContent = entregues;
-  document.getElementById('kpiPendentes').textContent = pendentes;
-  document.getElementById('kpiKm').textContent = km.toFixed(1).replace('.',',') + ' km';
-
-  // rota do dia (ativa ou rascunho atual)
-  const activeRoute = routes.find(r => r.status === 'em_andamento');
-  const rotaBody = document.getElementById('rotaAtualBody');
-  if(activeRoute || liveOrders.length > 0){
-    const cfg = await loadDoc(configKey(), null);
-    rotaBody.innerHTML = `
-      <span class="tag tag-progress">Em andamento</span>
-      <p class="note" style="margin-top:10px;">${cfg && cfg.saida ? 'Saída: ' + cfg.saida : 'Horário de saída não configurado'}</p>
-      <a href="rota-do-dia.html" class="btn btn-primary" style="width:100%;margin-top:10px;">Ver rota</a>`;
-  } else if(routes.length > 0){
-    rotaBody.innerHTML = `<span class="tag tag-done">Nenhuma rota em andamento</span>
-      <p class="note" style="margin-top:10px;">${routes.length} rota(s) finalizada(s) hoje.</p>
-      <a href="rota-do-dia.html" class="btn btn-outline" style="width:100%;margin-top:10px;">Ir pra Rota do Dia</a>`;
-  } else {
-    rotaBody.innerHTML = `<p class="note">Nenhum pedido adicionado ainda hoje.</p>
-      <a href="pedido-rapido.html" class="btn btn-primary" style="width:100%;margin-top:10px;">Adicionar pedido</a>`;
-  }
-
-  // resumo semanal (últimos 7 dias)
-  const end = today;
-  const startDate = new Date(today + 'T00:00:00'); startDate.setDate(startDate.getDate() - 6);
-  const start = startDate.toISOString().slice(0,10);
-  const weekRoutes = await loadRoutesInRange(start, end);
-  const byDay = {};
-  for(const d of dateRangeArray(start, end)) byDay[d] = { entregas: 0, km: 0 };
-  for(const r of weekRoutes){
-    const s = summarizeRoute(r);
-    if(byDay[r.date]){ byDay[r.date].entregas += s.entregas; byDay[r.date].km += s.km; }
-  }
-  const maxVal = Math.max(1, ...Object.values(byDay).map(v => v.entregas));
-  const dowLabels = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  document.getElementById('weekChart').innerHTML = Object.entries(byDay).map(([d,v]) => {
-    const dow = dowLabels[new Date(d + 'T00:00:00').getDay()];
-    const h = Math.max(2, Math.round((v.entregas / maxVal) * 100));
-    return `<div class="bar-col"><div class="bar" style="height:${h}%;" title="${v.entregas} entregas · ${v.km.toFixed(1)}km"></div><div class="bar-day">${dow}</div></div>`;
-  }).join('');
-
-  // última rota finalizada
-  const finalizedRoutes = weekRoutes.filter(r => r.status === 'finalizada').sort((a,b) => (b.finalizedAt||0) - (a.finalizedAt||0));
-  const last = finalizedRoutes[0];
-  const lastBody = document.getElementById('lastRouteBody');
-  if(!last){
-    lastBody.innerHTML = '<p class="note">Nenhuma rota finalizada ainda.</p>';
-  } else {
-    const s = summarizeRoute(last);
-    lastBody.innerHTML = `
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">${last.date.split('-').reverse().join('/')} · Rota ${last.seq}</div>
-      <p class="note" style="margin-top:8px;">${s.paradas} paradas · ${s.km.toFixed(1).replace('.',',')} km · ${s.entregas} entregas · ${s.trocas} trocas${s.naoEntregues ? ' · ' + s.naoEntregues + ' não entregue(s)' : ''}</p>
-      <a href="rota-detalhes.html?id=${last.id}" class="btn btn-outline" style="margin-top:10px;">Ver detalhes</a>`;
-  }
-}
-init();
-</script>
 </body>
 </html>

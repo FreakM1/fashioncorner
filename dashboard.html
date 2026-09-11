@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link rel="stylesheet" href="assets/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script>guardDashboardAuth();</script>
+<style>
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:900px){.grid2{grid-template-columns:1fr;}}
+  .bar-chart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:6px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .bar{width:100%;max-width:26px;background:var(--wine);border-radius:5px 5px 0 0;min-height:2px;}
+  .bar-day{font-size:10.5px;color:var(--muted);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
+  .promo-card{background:linear-gradient(135deg,var(--wine) 0%,var(--wine-dark) 100%);color:#fff;border-radius:14px;padding:22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .promo-card h3{font-family:'Fraunces',serif;font-size:19px;margin:0;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page">
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Pedidos hoje</div><div class="kpi-value" id="kpiPedidos">0</div><div class="kpi-delta" id="kpiPedidosDelta"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Entregues</div><div class="kpi-value" id="kpiEntregues">0</div><div class="kpi-delta" id="kpiEntreguesDelta"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Pendentes</div><div class="kpi-value" id="kpiPendentes">0</div><div class="kpi-delta" id="kpiPendentesDelta"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Km rodados hoje</div><div class="kpi-value" id="kpiKm">0 km</div></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Rota do dia</div>
+          <div id="rotaAtualBody"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Resumo da semana</div>
+          <div class="bar-chart" id="weekChart"></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="promo-card">
+          <h3>Moda que movimenta histórias</h3>
+          <span style="font-size:22px;">♥</span>
+        </div>
+        <div class="card">
+          <div class="card-title">Última rota finalizada</div>
+          <div id="lastRouteBody"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="assets/shared.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+renderShell({ active: 'dashboard', title: 'Dashboard', subtitle: 'Visão geral das entregas e rotas' });
+
+function fmtDuration(totalMin){
+  const h = Math.floor(totalMin/60); const m = Math.round(totalMin%60);
+  if(h<=0) return m + 'min';
+  return h + 'h' + String(m).padStart(2,'0');
+}
+
+async function init(){
+  await ensureAuth();
+  const today = dateSuffix();
+  const routes = await loadRoutesForDate(today);
+
+  let pedidos=0, entregues=0, pendentes=0, km=0;
+  for(const r of routes){
+    const s = summarizeRoute(r);
+    pedidos += s.paradas;
+    km += s.km;
+    pendentes += (r.orders||[]).slice(1,-1).filter(o => (o.status||'pendente')==='pendente').length;
+    entregues += (r.orders||[]).slice(1,-1).filter(o => o.status==='entregue').length;
+  }
+  const liveOrders = await loadDoc(todayKey(), []);
+  if(liveOrders.length > 2){
+    pedidos += liveOrders.length - 2;
+    pendentes += liveOrders.slice(1,-1).filter(o => (o.status||'pendente')==='pendente').length;
+  }
+  document.getElementById('kpiPedidos').textContent = pedidos;
+  document.getElementById('kpiEntregues').textContent = entregues;
+  document.getElementById('kpiPendentes').textContent = pendentes;
+  document.getElementById('kpiKm').textContent = km.toFixed(1).replace('.',',') + ' km';
+
+  // rota do dia (ativa ou rascunho atual)
+  const activeRoute = routes.find(r => r.status === 'em_andamento');
+  const rotaBody = document.getElementById('rotaAtualBody');
+  if(activeRoute || liveOrders.length > 0){
+    const cfg = await loadDoc(configKey(), null);
+    rotaBody.innerHTML = `
+      <span class="tag tag-progress">Em andamento</span>
+      <p class="note" style="margin-top:10px;">${cfg && cfg.saida ? 'Saída: ' + cfg.saida : 'Horário de saída não configurado'}</p>
+      <a href="rota-do-dia.html" class="btn btn-primary" style="width:100%;margin-top:10px;">Ver rota</a>`;
+  } else if(routes.length > 0){
+    rotaBody.innerHTML = `<span class="tag tag-done">Nenhuma rota em andamento</span>
+      <p class="note" style="margin-top:10px;">${routes.length} rota(s) finalizada(s) hoje.</p>
+      <a href="rota-do-dia.html" class="btn btn-outline" style="width:100%;margin-top:10px;">Ir pra Rota do Dia</a>`;
+  } else {
+    rotaBody.innerHTML = `<p class="note">Nenhum pedido adicionado ainda hoje.</p>
+      <a href="pedido-rapido.html" class="btn btn-primary" style="width:100%;margin-top:10px;">Adicionar pedido</a>`;
+  }
+
+  // resumo semanal (últimos 7 dias)
+  const end = today;
+  const startDate = new Date(today + 'T00:00:00'); startDate.setDate(startDate.getDate() - 6);
+  const start = startDate.toISOString().slice(0,10);
+  const weekRoutes = await loadRoutesInRange(start, end);
+  const byDay = {};
+  for(const d of dateRangeArray(start, end)) byDay[d] = { entregas: 0, km: 0 };
+  for(const r of weekRoutes){
+    const s = summarizeRoute(r);
+    if(byDay[r.date]){ byDay[r.date].entregas += s.entregas; byDay[r.date].km += s.km; }
+  }
+  const maxVal = Math.max(1, ...Object.values(byDay).map(v => v.entregas));
+  const dowLabels = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  document.getElementById('weekChart').innerHTML = Object.entries(byDay).map(([d,v]) => {
+    const dow = dowLabels[new Date(d + 'T00:00:00').getDay()];
+    const h = Math.max(2, Math.round((v.entregas / maxVal) * 100));
+    return `<div class="bar-col"><div class="bar" style="height:${h}%;" title="${v.entregas} entregas · ${v.km.toFixed(1)}km"></div><div class="bar-day">${dow}</div></div>`;
+  }).join('');
+
+  // última rota finalizada
+  const finalizedRoutes = weekRoutes.filter(r => r.status === 'finalizada').sort((a,b) => (b.finalizedAt||0) - (a.finalizedAt||0));
+  const last = finalizedRoutes[0];
+  const lastBody = document.getElementById('lastRouteBody');
+  if(!last){
+    lastBody.innerHTML = '<p class="note">Nenhuma rota finalizada ainda.</p>';
+  } else {
+    const s = summarizeRoute(last);
+    lastBody.innerHTML = `
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">${last.date.split('-').reverse().join('/')} · Rota ${last.seq}</div>
+      <p class="note" style="margin-top:8px;">${s.paradas} paradas · ${s.km.toFixed(1).replace('.',',')} km · ${s.entregas} entregas · ${s.trocas} trocas${s.naoEntregues ? ' · ' + s.naoEntregues + ' não entregue(s)' : ''}</p>
+      <a href="rota-detalhes.html?id=${last.id}" class="btn btn-outline" style="margin-top:10px;">Ver detalhes</a>`;
+  }
+}
+init();
+</script>
+</body>
+</html>
