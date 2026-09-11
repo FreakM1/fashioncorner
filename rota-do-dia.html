@@ -213,15 +213,21 @@ document.getElementById('mapsBtn').addEventListener('click', () => {
   window.open(url, '_blank');
 });
 
+// Numeração é sempre calculada aqui, na hora de copiar, a partir da
+// posição atual de cada pedido em `orders` — nunca fica salva no pedido.
+// Por isso reordenar (manual ou "Organizar rota") e copiar de novo
+// sempre reflete a ordem exata daquele momento, e pode ser copiada
+// quantas vezes for preciso sem afetar a rota em montagem.
 document.getElementById('copyBtn').addEventListener('click', () => {
   if(orders.length === 0){ showToast('Nenhuma parada para copiar'); return; }
-  const lines = orders.map(o => {
+  const lines = orders.map((o, i) => {
+    const n = `${i + 1}. `;
     if(o.kind === 'avulsa'){
-      let block = `${o.name.toUpperCase()}\n${o.address}`;
+      let block = `${n}${o.name.toUpperCase()}\n${o.address}`;
       if(o.obs) block += `\n${o.obs}`;
       return block;
     }
-    let block = `${o.name} - ${(o.modes||[]).join(' + ')}`;
+    let block = `${n}${o.name} - ${(o.modes||[]).join(' + ')}`;
     if(o.phone) block += `\n${o.phone}`;
     block += `\n${o.address}`;
     if(o.complement) block += `\n${o.complement}`;
