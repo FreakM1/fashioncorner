@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Histórico de Rotas</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+  .filter-row input[type=date]{width:auto;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page">
+
+      <div class="card">
+        <div class="filter-row">
+          <button class="btn btn-outline" data-preset="hoje">Hoje</button>
+          <button class="btn btn-outline" data-preset="semana">Semana</button>
+          <button class="btn btn-outline" data-preset="mes">Mês</button>
+          <span class="note">ou</span>
+          <input type="date" id="startDate">
+          <span class="note">até</span>
+          <input type="date" id="endDate">
+          <button class="btn btn-primary" id="applyRange">Aplicar</button>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table clickable">
+            <thead><tr>
+              <th>Data</th><th>Rota</th><th>Paradas</th><th>Entregas</th><th>Trocas</th><th>Provas</th>
+              <th>Retiradas</th><th>Não entregues</th><th>Km</th><th>Status</th>
+            </tr></thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Total do período</div>
+        <div class="kpi-grid" style="margin-bottom:0;">
+          <div class="kpi-card"><div class="kpi-label">Rotas</div><div class="kpi-value" id="totRotas">0</div></div>
+          <div class="kpi-card"><div class="kpi-label">Paradas</div><div class="kpi-value" id="totParadas">0</div></div>
+          <div class="kpi-card"><div class="kpi-label">Entregas</div><div class="kpi-value" id="totEntregas">0</div></div>
+          <div class="kpi-card"><div class="kpi-label">Trocas</div><div class="kpi-value" id="totTrocas">0</div></div>
+          <div class="kpi-card"><div class="kpi-label">Não entregues</div><div class="kpi-value" id="totNaoEntregues">0</div></div>
+          <div class="kpi-card"><div class="kpi-label">Km total</div><div class="kpi-value" id="totKm">0 km</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="assets/shared.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+renderShell({ active: 'historico', title: 'Histórico de Rotas', subtitle: 'Todas as rotas realizadas' });
+
+function fmtDate(d){ return d.split('-').reverse().join('/'); }
+
+async function loadRange(start, end){
+  document.getElementById('startDate').value = start;
+  document.getElementById('endDate').value = end;
+  const routes = await loadRoutesInRange(start, end);
+
+  let totRotas=0, totParadas=0, totEntregas=0, totTrocas=0, totNaoEntregues=0, totKm=0;
+  const rows = routes.map(r => {
+    const s = summarizeRoute(r);
+    totRotas++; totParadas += s.paradas; totEntregas += s.entregas; totTrocas += s.trocas;
+    totNaoEntregues += s.naoEntregues; totKm += s.km;
+    const statusTag = r.status === 'finalizada' ? '<span class="tag tag-done">Finalizada</span>' : '<span class="tag tag-progress">Em andamento</span>';
+    return `<tr onclick="location.href='rota-detalhes.html?id=${r.id}'">
+      <td>${fmtDate(r.date)}</td><td>Rota ${r.seq}</td><td>${s.paradas}</td><td>${s.entregas}</td>
+      <td>${s.trocas}</td><td>${s.provas}</td><td>${s.retiradas}</td>
+      <td>${s.naoEntregues || '—'}</td><td>${s.km.toFixed(1).replace('.',',')}</td><td>${statusTag}</td>
+    </tr>`;
+  });
+
+  document.getElementById('historyBody').innerHTML = rows.length
+    ? rows.join('')
+    : '<tr><td colspan="10" class="empty-state">Nenhuma rota no período.</td></tr>';
+
+  document.getElementById('totRotas').textContent = totRotas;
+  document.getElementById('totParadas').textContent = totParadas;
+  document.getElementById('totEntregas').textContent = totEntregas;
+  document.getElementById('totTrocas').textContent = totTrocas;
+  document.getElementById('totNaoEntregues').textContent = totNaoEntregues;
+  document.getElementById('totKm').textContent = totKm.toFixed(1).replace('.',',') + ' km';
+}
+
+document.querySelectorAll('[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const today = dateSuffix();
+    if(btn.dataset.preset === 'hoje'){ loadRange(today, today); return; }
+    if(btn.dataset.preset === 'semana'){
+      const d = new Date(today + 'T00:00:00'); d.setDate(d.getDate() - 6);
+      loadRange(d.toISOString().slice(0,10), today); return;
+    }
+    if(btn.dataset.preset === 'mes'){
+      const d = new Date(today + 'T00:00:00'); d.setDate(1);
+      loadRange(d.toISOString().slice(0,10), today); return;
+    }
+  });
+});
+document.getElementById('applyRange').addEventListener('click', () => {
+  const s = document.getElementById('startDate').value;
+  const e = document.getElementById('endDate').value;
+  if(!s || !e){ return; }
+  loadRange(s, e);
+});
+
+(async () => { await ensureAuth(); loadRange(dateSuffix(), dateSuffix()); })();
+</script>
+</body>
+</html>

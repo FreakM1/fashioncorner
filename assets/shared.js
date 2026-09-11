@@ -121,6 +121,147 @@ async function computeRoutesRequest({ origin, destination, intermediates, optimi
   return res.json();
 }
 
+// Busca os trechos (distância/tempo) de uma rota já com a ordem definida —
+// usado pelo Planejamento (calcular chegadas) e pela Rota do Dia (km/tempo
+// pra finalizar e pro histórico). Fonte única, evita duplicar o parsing.
+async function fetchRouteLegs(orders){
+  const addresses = orders.map(o => o.address);
+  const data = await computeRoutesRequest({
+    origin: addresses[0],
+    destination: addresses[addresses.length - 1],
+    intermediates: addresses.slice(1, -1),
+    optimizeWaypointOrder: false,
+    fieldMask: 'routes.legs.duration,routes.legs.distanceMeters,routes.duration,routes.distanceMeters'
+  });
+  const route = data.routes && data.routes[0];
+  if(!route || !route.legs) throw new Error('A API não retornou os trechos da rota');
+  return route.legs.map(l => ({
+    durationSec: parseInt(l.duration, 10) || 0,
+    distanceMeters: l.distanceMeters || 0
+  }));
+}
+
+// ---------- Status da parada (Rota do Dia / Histórico / Detalhes) ----------
+const STOP_STATUS_LABELS = {
+  pendente: 'Pendente', entregue: 'Entregue', nao_entregue: 'Não entregue',
+  trocado: 'Trocado', retirado: 'Retirado', deixado: 'Deixado'
+};
+function stopStatusTagClass(status){
+  switch(status){
+    case 'entregue': return 'tag-delivered';
+    case 'nao_entregue': return 'tag-not-delivered';
+    case 'trocado': return 'tag-swapped';
+    case 'retirado': case 'deixado': return 'tag-progress';
+    default: return 'tag-pending';
+  }
+}
+
+// ---------- Registro histórico de rotas ----------
+// Cada rota finalizada (ou em edição) é um documento próprio
+// route-YYYY-MM-DD-N (N = 1ª, 2ª... rota daquele dia), listado num índice
+// leve routes-index-YYYY-MM-DD. Tudo via loadDoc/saveDoc — mesmo mecanismo
+// (Firestore + espelho em localStorage) já usado pra orders/config/report.
+const ROUTE_STATUS = { ATIVA: 'em_andamento', FINALIZADA: 'finalizada' };
+function routeIndexKey(dateStr){ return 'routes-index-' + dateStr; }
+function routeDocKey(dateStr, seq){ return 'route-' + dateStr + '-' + seq; }
+
+async function loadRouteIndex(dateStr){
+  return await loadDoc(routeIndexKey(dateStr), { count: 0, ids: [] });
+}
+
+async function loadRoutesForDate(dateStr){
+  const index = await loadRouteIndex(dateStr);
+  const routes = [];
+  for(const id of index.ids){
+    const r = await loadDoc(id, null);
+    if(r) routes.push(r);
+  }
+  return routes.sort((a, b) => a.seq - b.seq);
+}
+
+// rota com status "em_andamento" de hoje, se existir (só existe quando o
+// usuário reabre uma rota já finalizada pra editar).
+async function findActiveRoute(dateStr){
+  const routes = await loadRoutesForDate(dateStr);
+  return routes.find(r => r.status === ROUTE_STATUS.ATIVA) || null;
+}
+
+// grava a rota atual (rascunho de orders-YYYY-MM-DD) como finalizada.
+// Se `route` já existir (reabertura), atualiza o mesmo registro em vez de
+// criar um novo — finalizar de novo nunca duplica a rota.
+async function finalizeRouteRecord(dateStr, orders, legs, existingRoute){
+  const index = await loadRouteIndex(dateStr);
+  let route = existingRoute;
+  if(!route){
+    const seq = index.count + 1;
+    route = { id: routeDocKey(dateStr, seq), date: dateStr, seq, history: [] };
+    index.count = seq;
+    index.ids.push(route.id);
+  }
+  route.orders = orders;
+  route.legs = legs;
+  route.status = ROUTE_STATUS.FINALIZADA;
+  route.updatedAt = Date.now();
+  route.finalizedAt = Date.now();
+  route.history.push({ at: Date.now(), note: existingRoute ? 'Reorganizada e finalizada novamente' : 'Rota finalizada' });
+  await saveDoc(route.id, route);
+  await saveDoc(routeIndexKey(dateStr), index);
+  return route;
+}
+
+// reabre uma rota finalizada pra edição — o rascunho (orders-YYYY-MM-DD)
+// passa a ser a cópia dessa rota, reaproveitando toda a lógica existente
+// de organizar/editar/adicionar parada.
+async function reopenRoute(route){
+  route.status = ROUTE_STATUS.ATIVA;
+  route.updatedAt = Date.now();
+  route.history.push({ at: Date.now(), note: 'Reaberta para edição' });
+  await saveDoc(route.id, route);
+  await saveDoc(todayKey(), route.orders);
+  return route;
+}
+
+function dateRangeArray(startStr, endStr){
+  const out = [];
+  let cur = new Date(startStr + 'T00:00:00');
+  const end = new Date(endStr + 'T00:00:00');
+  while(cur <= end){
+    out.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+
+async function loadRoutesInRange(startStr, endStr){
+  const all = [];
+  for(const d of dateRangeArray(startStr, endStr)){
+    all.push(...(await loadRoutesForDate(d)));
+  }
+  return all;
+}
+
+// resumo agregado de uma rota — paradas por tipo, não entregues, km/tempo
+// (quando já tiver legs calculados). Usado pelo Dashboard, Rota do Dia,
+// Histórico e Detalhes — não duplicar essa conta em cada página.
+function summarizeRoute(route){
+  const orders = route.orders || [];
+  const intermediates = orders.length > 2 ? orders.slice(1, -1) : [];
+  const legs = route.legs || null;
+  let km = 0, driveMin = 0;
+  if(legs){ for(const l of legs){ km += (l.distanceMeters || 0) / 1000; driveMin += (l.durationSec || 0) / 60; } }
+  const count = (pred) => intermediates.filter(pred).length;
+  return {
+    paradas: intermediates.length,
+    entregas: count(o => hasMode(o.modes, 'ENTREGA')),
+    trocas: count(o => hasMode(o.modes, 'TROCA')),
+    provas: count(o => hasMode(o.modes, 'PROVA NA HORA')),
+    retiradas: count(o => hasMode(o.modes, 'RETIRADA') || hasMode(o.modes, 'RETIRAR MALA')),
+    naoEntregues: count(o => o.status === 'nao_entregue'),
+    comHorario: count(o => o.timeWindow && o.timeWindow.type !== 'none'),
+    km, driveMin
+  };
+}
+
 // Texto amigável pro horário de uma entrega — lista do Pedido Rápido e
 // relatório do Planejamento da Rota.
 function timeWindowLabel(tw){

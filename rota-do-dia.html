@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rota do Dia</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .grid2{display:grid;grid-template-columns:1.35fr 0.95fr;gap:18px;align-items:start;}
+  @media (max-width:980px){.grid2{grid-template-columns:1fr;}}
+  .ticket{border:1.5px dashed var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;background:linear-gradient(180deg,#fff,#fffdfb);}
+  .ticket.avulsa{border-style:solid;background:var(--paper-2);}
+  .ticket .num{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#fff;background:var(--wine);width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .ticket.avulsa .num{background:var(--ink);}
+  .ticket .body{flex:1;min-width:0;}
+  .ticket .tname{font-weight:600;font-size:14.5px;}
+  .ticket .taddr{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4;}
+  .ticket .tmeta{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--paper-2);}
+  .ticket .tobs{font-size:12px;color:var(--wine);margin-top:4px;font-style:italic;}
+  .ticket .actions{display:flex;flex-direction:column;gap:4px;}
+  .drag-handle{cursor:grab;touch-action:none;color:var(--muted);font-size:15px;padding:0 4px;user-select:none;line-height:1;}
+  .drag-handle:active{cursor:grabbing;}
+  .ticket.dragging{position:fixed;z-index:200;pointer-events:none;cursor:grabbing;box-shadow:0 18px 36px -12px rgba(42,36,32,.35);transform:rotate(1.5deg);margin:0;}
+  .ticket-placeholder{border:1.5px dashed var(--gold);border-radius:10px;margin-bottom:10px;background:var(--paper-2);}
+  .edit-form{width:100%;}
+  .edit-form select,.edit-form textarea{margin-top:6px;}
+  .edit-pill{padding:7px 12px;border-radius:20px;border:1.5px solid var(--line);background:#fff;font-size:12.5px;font-weight:500;cursor:pointer;}
+  .edit-pill.active{border-color:var(--wine);background:var(--wine);color:#fff;}
+  .edit-pill-group{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .edit-actions{display:flex;gap:8px;margin-top:10px;}
+  .edit-actions button{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--line);background:#fff;font-size:13px;font-weight:600;cursor:pointer;}
+  .edit-actions .save-btn{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .status-select{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;padding:3px 8px;border-radius:20px;border:1px solid var(--line);background:#fff;cursor:pointer;}
+  .route-map{width:100%;height:340px;border:0;border-radius:14px;background:var(--paper-2);}
+  .route-badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page">
+
+      <div id="reopenedBadge" class="banner" style="display:none;"></div>
+      <div id="finishedBanner" class="banner" style="display:none;background:#E9F1EA;border-color:var(--sage);"></div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Paradas</div><div class="kpi-value" id="kpiParadas">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Com horário</div><div class="kpi-value" id="kpiHorario">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Provas</div><div class="kpi-value" id="kpiProvas">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Km / tempo estimado</div><div class="kpi-value" id="kpiKm">—</div></div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="card">
+            <div class="btn-row" style="margin-bottom:14px;">
+              <button class="btn btn-outline" id="organizeBtn">Organizar rota</button>
+              <button class="btn btn-ghost" id="copyBtn">Copiar para motoboy</button>
+              <button class="btn btn-ghost" id="mapsBtn">Abrir no Maps</button>
+              <button class="btn btn-dark" id="finalizeBtn" style="margin-left:auto;">Finalizar rota</button>
+            </div>
+            <div id="ordersList"></div>
+            <div id="emptyOrders" class="empty-state" style="display:none;">
+              Nenhuma parada ainda hoje. Adicione no <a href="pedido-rapido.html" style="color:var(--wine);font-weight:600;">Pedido Rápido</a>.
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">Mapa da rota</div>
+            <iframe id="routeMap" class="route-map" style="display:none;"></iframe>
+            <p class="note" id="mapNote">O mapa aparece quando há pelo menos 2 pontos na rota.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="assets/shared.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+renderShell({ active: 'rota', title: 'Rota do Dia', subtitle: 'Organize, acompanhe e finalize a rota de hoje' });
+
+let orders = [];
+let activeRoute = null;   // rota reaberta pra edição (status em_andamento), se houver
+let latestRoute = null;   // última rota do dia (finalizada ou em_andamento)
+let editingIndex = null;
+
+const toast = document.getElementById('toast');
+function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
+
+async function loadOrders(){ orders = await loadDoc(todayKey(), []); }
+async function saveOrders(){ await saveDoc(todayKey(), orders); renderKpis(); renderMap(); }
+
+const ordersListEl = document.getElementById('ordersList');
+const organizeBtn = document.getElementById('organizeBtn');
+const finalizeBtn = document.getElementById('finalizeBtn');
+
+async function init(){
+  await ensureAuth();
+  const today = dateSuffix();
+  await loadOrders();
+  activeRoute = await findActiveRoute(today);
+  const routes = await loadRoutesForDate(today);
+  latestRoute = routes.length ? routes[routes.length - 1] : null;
+
+  if(activeRoute){
+    document.getElementById('reopenedBadge').style.display = 'block';
+    document.getElementById('reopenedBadge').textContent = `Editando Rota ${activeRoute.seq} (reaberta) — finalizar vai atualizar esse mesmo registro.`;
+  } else if(latestRoute && latestRoute.status === 'finalizada' && orders.length === 0){
+    document.getElementById('finishedBanner').style.display = 'block';
+    document.getElementById('finishedBanner').innerHTML = `Rota ${latestRoute.seq} de hoje já foi finalizada (${summarizeRoute(latestRoute).paradas} paradas). ` +
+      `<button class="btn btn-outline" id="reopenBtn" style="margin-left:8px;padding:6px 12px;font-size:12px;">Reabrir para editar</button>`;
+    document.getElementById('reopenBtn').addEventListener('click', async () => {
+      await reopenRoute(latestRoute);
+      showToast('Rota reaberta para edição');
+      location.reload();
+    });
+  }
+
+  renderOrders();
+  renderKpis();
+  renderMap();
+}
+
+function renderKpis(){
+  const intermediates = orders.length > 2 ? orders.slice(1, -1) : [];
+  document.getElementById('kpiParadas').textContent = intermediates.length;
+  document.getElementById('kpiHorario').textContent = intermediates.filter(o => o.timeWindow && o.timeWindow.type !== 'none').length;
+  document.getElementById('kpiProvas').textContent = intermediates.filter(o => hasMode(o.modes,'PROVA NA HORA')).length;
+  const legs = (activeRoute && activeRoute.legs) || (latestRoute && JSON.stringify(latestRoute.orders) === JSON.stringify(orders) ? latestRoute.legs : null);
+  if(legs){
+    let km = 0, min = 0;
+    for(const l of legs){ km += (l.distanceMeters||0)/1000; min += (l.durationSec||0)/60; }
+    document.getElementById('kpiKm').textContent = km.toFixed(1).replace('.',',') + ' km · ' + Math.round(min) + 'min';
+  } else {
+    document.getElementById('kpiKm').textContent = '—';
+  }
+}
+
+function renderMap(){
+  const frame = document.getElementById('routeMap');
+  const note = document.getElementById('mapNote');
+  if(orders.length < 2 || !hasGoogleMapsKey()){
+    frame.style.display = 'none'; note.style.display = 'block';
+    return;
+  }
+  const origin = encodeURIComponent(orders[0].address);
+  const destination = encodeURIComponent(orders[orders.length-1].address);
+  const waypoints = orders.slice(1, -1).map(o => encodeURIComponent(o.address)).join('|');
+  let url = `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}`;
+  if(waypoints) url += `&waypoints=${waypoints}`;
+  frame.src = url;
+  frame.style.display = 'block'; note.style.display = 'none';
+}
+
+document.getElementById('mapsBtn').addEventListener('click', () => {
+  if(orders.length === 0){ showToast('Nenhuma parada na rota'); return; }
+  const url = 'https://www.google.com/maps/dir/' + orders.map(o => encodeURIComponent(o.address)).join('/');
+  window.open(url, '_blank');
+});
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  if(orders.length === 0){ showToast('Nenhuma parada para copiar'); return; }
+  const lines = orders.map(o => {
+    if(o.kind === 'avulsa'){
+      let block = `${o.name.toUpperCase()}\n${o.address}`;
+      if(o.obs) block += `\n${o.obs}`;
+      return block;
+    }
+    let block = `${o.name} - ${(o.modes||[]).join(' + ')}`;
+    if(o.phone) block += `\n${o.phone}`;
+    block += `\n${o.address}`;
+    if(o.complement) block += `\n${o.complement}`;
+    if(o.ref) block += `\n${o.ref}`;
+    if(o.obs) block += `\n${o.obs}`;
+    return block;
+  });
+  navigator.clipboard.writeText(lines.join('\n\n')).then(() => showToast('Lista copiada!')).catch(() => showToast('Não foi possível copiar'));
+});
+
+// ---------- LISTA / TICKETS ----------
+function ensureOrderIds(){
+  let changed = false;
+  orders.forEach(o => { if(!o._id){ o._id = 'o' + Date.now() + Math.random().toString(36).slice(2,8); changed = true; } if(!o.status){ o.status = 'pendente'; changed = true; } });
+  return changed;
+}
+
+function renderOrders(){
+  if(ensureOrderIds()) saveOrders();
+  document.getElementById('emptyOrders').style.display = orders.length === 0 ? 'block' : 'none';
+  ordersListEl.style.display = orders.length === 0 ? 'none' : 'block';
+  organizeBtn.disabled = orders.length < 3;
+  finalizeBtn.disabled = orders.length === 0;
+
+  ordersListEl.innerHTML = orders.map((o, i) => {
+    if(i === editingIndex) return renderEditTicket(o, i);
+    const twLabel = timeWindowLabel(o.timeWindow);
+    const statusSelect = `<select class="status-select" data-idx="${i}">
+      ${Object.entries(STOP_STATUS_LABELS).map(([k,l]) => `<option value="${k}" ${o.status===k?'selected':''}>${l}</option>`).join('')}
+    </select>`;
+    const cls = o.kind === 'avulsa' ? 'ticket avulsa' : 'ticket';
+    const meta = o.kind === 'avulsa'
+      ? (twLabel ? `<span class="pill">${twLabel}</span>` : '')
+      : `${(o.modes||[]).map(m => `<span class="pill">${m}</span>`).join('')}${twLabel ? `<span class="pill">${twLabel}</span>` : ''}`;
+    return `<div class="${cls}" data-order-id="${o._id}">
+      <span class="drag-handle">⠿</span>
+      <div class="num">${i+1}</div><div class="body">
+      <div class="tname">${o.name}</div>
+      <div class="taddr">${o.address}${o.complement ? ' · ' + o.complement : ''}</div>
+      <div class="tmeta">${meta}${statusSelect}</div>
+      ${o.obs ? `<div class="tobs">${o.obs}</div>` : ''}
+      </div><div class="actions">
+        <button class="mini-btn" onclick="openEditOrder(${i})" title="Editar">✎</button>
+        <button class="mini-btn" onclick="moveOrder(${i},-1)" title="Subir">↑</button>
+        <button class="mini-btn" onclick="moveOrder(${i},1)" title="Descer">↓</button>
+        <button class="mini-btn" onclick="removeOrder(${i})" title="Remover">✕</button>
+      </div></div>`;
+  }).join('');
+
+  attachDragHandlers();
+}
+
+ordersListEl.addEventListener('change', (e) => {
+  const sel = e.target.closest('.status-select');
+  if(!sel) return;
+  orders[parseInt(sel.dataset.idx)].status = sel.value;
+  saveOrders();
+});
+
+function renderTwEditBlock(i, tw){
+  tw = tw || { type:'none', time:null };
+  return `<label class="f-label">Horário da entrega</label>
+    <div class="edit-pill-group" id="editTwPills-${i}">
+      <button type="button" class="edit-pill tw-pill ${tw.type==='none'?'active':''}" data-tw="none">Sem horário</button>
+      <button type="button" class="edit-pill tw-pill ${tw.type==='before'?'active':''}" data-tw="before">Antes de</button>
+      <button type="button" class="edit-pill tw-pill ${tw.type==='after'?'active':''}" data-tw="after">Depois de</button>
+    </div>
+    <div id="editTwTimeBox-${i}" style="display:${tw.type==='none'?'none':'block'};margin-top:8px;">
+      <input type="time" id="editTwTimeInput-${i}" value="${tw.time||''}" style="max-width:140px;">
+    </div>`;
+}
+
+function renderEditTicket(o, i){
+  const addrInput = `<input type="text" id="editAddress" value="${(o.address||'').replace(/"/g,'&quot;')}">`;
+  if(o.kind === 'avulsa'){
+    return `<div class="ticket avulsa" data-order-id="${o._id}"><div class="edit-form">
+      <label class="f-label" style="margin-top:0;">Nome da parada</label>
+      <input type="text" id="editName" value="${(o.name||'').replace(/"/g,'&quot;')}">
+      <label class="f-label">Endereço</label>
+      ${addrInput}
+      ${renderTwEditBlock(i, o.timeWindow)}
+      <label class="f-label">Observação</label>
+      <textarea id="editObs">${o.obs || ''}</textarea>
+      <div class="edit-actions">
+        <button class="save-btn" onclick="saveEditOrder(${i})">Salvar</button>
+        <button onclick="cancelEditOrder()">Cancelar</button>
+      </div>
+    </div></div>`;
+  }
+  const correioQty = extractCorreioQty(o.modes);
+  return `<div class="ticket" data-order-id="${o._id}"><div class="edit-form">
+    <div class="tname">${o.name}</div>
+    <label class="f-label">Endereço</label>
+    ${addrInput}
+    <label class="f-label">Tipo de atendimento</label>
+    <div class="edit-pill-group" id="editModalPills-${i}">
+      ${MODES.map(m => `<button type="button" class="edit-pill${hasMode(o.modes,m.key)?' active':''}" data-mode="${m.key}">${m.label}</button>`).join('')}
+    </div>
+    <div id="editCorreioQtyBox-${i}" style="display:${hasMode(o.modes,'CORREIO')?'block':'none'};margin-top:8px;">
+      <label class="f-label" style="margin:0 0 5px;">Quantos pacotes?</label>
+      <input type="number" id="editCorreioQtyInput-${i}" min="1" value="${correioQty}" style="max-width:120px;">
+    </div>
+    ${renderTwEditBlock(i, o.timeWindow)}
+    <label class="f-label">Observação</label>
+    <textarea id="editObs">${o.obs || ''}</textarea>
+    <div class="edit-actions">
+      <button class="save-btn" onclick="saveEditOrder(${i})">Salvar</button>
+      <button onclick="cancelEditOrder()">Cancelar</button>
+    </div>
+  </div></div>`;
+}
+
+function extractCorreioQty(modes){
+  const m = (modes||[]).find(x => x.startsWith('CORREIO'));
+  if(!m) return '';
+  const match = m.match(/CORREIO - (\d+)/);
+  return match ? match[1] : '';
+}
+
+ordersListEl.addEventListener('click', (e) => {
+  const pill = e.target.closest('.edit-pill:not(.tw-pill)');
+  if(pill){
+    pill.classList.toggle('active');
+    if(pill.dataset.mode === 'CORREIO'){
+      const box = pill.closest('.edit-form').querySelector('[id^="editCorreioQtyBox-"]');
+      if(box) box.style.display = pill.classList.contains('active') ? 'block' : 'none';
+    }
+    return;
+  }
+  const twPill = e.target.closest('.tw-pill');
+  if(twPill){
+    const form = twPill.closest('.edit-form');
+    form.querySelectorAll('.tw-pill').forEach(b => b.classList.remove('active'));
+    twPill.classList.add('active');
+    const box = form.querySelector('[id^="editTwTimeBox-"]');
+    if(box) box.style.display = (twPill.dataset.tw === 'none') ? 'none' : 'block';
+  }
+});
+
+function openEditOrder(i){ editingIndex = i; renderOrders(); }
+function cancelEditOrder(){ editingIndex = null; renderOrders(); }
+function saveEditOrder(i){
+  const o = orders[i];
+  o.address = document.getElementById('editAddress').value.trim() || o.address;
+  if(o.kind === 'avulsa'){
+    o.name = document.getElementById('editName').value.trim() || o.name;
+    o.obs = document.getElementById('editObs').value.trim();
+  } else {
+    const modes = [];
+    document.querySelectorAll(`#editModalPills-${i} .edit-pill.active`).forEach(b => {
+      let m = b.dataset.mode;
+      if(m === 'CORREIO'){
+        const qtyInput = document.getElementById(`editCorreioQtyInput-${i}`);
+        const qty = qtyInput ? qtyInput.value.trim() : '';
+        m = qty ? `CORREIO - ${qty} PACOTES` : 'CORREIO';
+      }
+      modes.push(m);
+    });
+    o.modes = modes;
+    o.obs = document.getElementById('editObs').value.trim();
+  }
+  const twBtn = document.querySelector(`#editTwPills-${i} .tw-pill.active`);
+  const twType = twBtn ? twBtn.dataset.tw : 'none';
+  const twInput = document.getElementById(`editTwTimeInput-${i}`);
+  o.timeWindow = { type: twType, time: twType === 'none' ? null : (twInput ? (twInput.value || null) : null) };
+  editingIndex = null;
+  renderOrders();
+  saveOrders();
+  showToast('Pedido atualizado');
+}
+
+function moveOrder(i, dir){ const j=i+dir; if(j<0||j>=orders.length) return; [orders[i],orders[j]]=[orders[j],orders[i]]; renderOrders(); saveOrders(); }
+function removeOrder(i){ orders.splice(i,1); renderOrders(); saveOrders(); }
+
+// ---------- ORGANIZAR ROTA ----------
+function evaluateSequence(seq, matrix, intermediates, cfg, saidaMin){
+  const n = intermediates.length;
+  let t = saidaMin, totalDist = 0, violations = 0, lastIdx = 0;
+  for(const idx of seq){
+    const matIdx = idx + 1;
+    t += matrix.durationMin[lastIdx][matIdx];
+    totalDist += matrix.distanceMeters[lastIdx][matIdx];
+    const o = intermediates[idx];
+    if(violatesWindow(o.timeWindow, t)) violations++;
+    t += serviceTimeFor(o, cfg);
+    lastIdx = matIdx;
+  }
+  const destIdx = n + 1;
+  t += matrix.durationMin[lastIdx][destIdx];
+  totalDist += matrix.distanceMeters[lastIdx][destIdx];
+  return { violations, totalDist, finalTime: t };
+}
+function betterScore(a, b){
+  if(a.violations !== b.violations) return a.violations < b.violations;
+  return a.totalDist < b.totalDist - 1e-6;
+}
+function solveTimeAwareOrder(intermediates, matrix, cfg, saidaMin){
+  let remaining = intermediates.map((_, i) => i);
+  let seq = [];
+  while(remaining.length > 0){
+    let bestCand=null,bestPos=null,bestScore=null;
+    for(const cand of remaining){
+      for(let pos=0; pos<=seq.length; pos++){
+        const trial = seq.slice(0,pos).concat([cand], seq.slice(pos));
+        const score = evaluateSequence(trial, matrix, intermediates, cfg, saidaMin);
+        if(bestScore===null || betterScore(score,bestScore)){ bestScore=score; bestCand=cand; bestPos=pos; }
+      }
+    }
+    seq.splice(bestPos,0,bestCand);
+    remaining = remaining.filter(x => x!==bestCand);
+  }
+  let improved=true, iterations=0;
+  while(improved && iterations<300){
+    improved=false; iterations++;
+    const currentScore = evaluateSequence(seq, matrix, intermediates, cfg, saidaMin);
+    for(let j=0;j<seq.length && !improved;j++){
+      for(let i=0;i<=seq.length;i++){
+        if(i===j||i===j+1) continue;
+        const item = seq[j];
+        const withoutItem = seq.slice(0,j).concat(seq.slice(j+1));
+        const insertAt = i>j ? i-1 : i;
+        const trial = withoutItem.slice(0,insertAt).concat([item], withoutItem.slice(insertAt));
+        const score = evaluateSequence(trial, matrix, intermediates, cfg, saidaMin);
+        if(betterScore(score,currentScore)){ seq=trial; improved=true; break; }
+      }
+    }
+    if(improved) continue;
+    for(let i=0;i<seq.length-1 && !improved;i++){
+      for(let j=i+1;j<seq.length;j++){
+        const trial = seq.slice(0,i).concat(seq.slice(i,j+1).reverse(), seq.slice(j+1));
+        const score = evaluateSequence(trial, matrix, intermediates, cfg, saidaMin);
+        if(betterScore(score,currentScore)){ seq=trial; improved=true; break; }
+      }
+    }
+  }
+  return { seq, score: evaluateSequence(seq, matrix, intermediates, cfg, saidaMin) };
+}
+
+async function organizeRoute(){
+  if(!hasGoogleMapsKey()){ showToast('Configure a variável de ambiente GOOGLE_MAPS_API_KEY no servidor'); return; }
+  if(orders.length < 3){ showToast('Adicione pelo menos 3 paradas para organizar a rota'); return; }
+
+  const origin = orders[0];
+  const destination = orders[orders.length-1];
+  const intermediates = orders.slice(1,-1);
+  if(intermediates.length < 2){ showToast('Rota já está na melhor ordem possível'); return; }
+
+  const hasAnyWindow = intermediates.some(o => o.timeWindow && o.timeWindow.type !== 'none');
+  let dayConfig = null;
+  if(hasAnyWindow){
+    dayConfig = await loadDoc(configKey(), null);
+    if(!dayConfig || !dayConfig.saida){
+      showToast('Configure o horário de saída no Planejamento da Rota antes de organizar — é necessário pra respeitar os horários dos pedidos');
+      return;
+    }
+  }
+
+  const totalPoints = intermediates.length + 2;
+  const useTimeAware = hasAnyWindow && totalPoints <= 25;
+  if(hasAnyWindow && totalPoints > 25){
+    showToast('Muitas paradas pra considerar os horários automaticamente (máx. 25) — organizando só por distância');
+  }
+
+  organizeBtn.disabled = true;
+  const originalLabel = organizeBtn.textContent;
+  organizeBtn.textContent = 'Organizando...';
+
+  try {
+    let orderedIntermediates, violationCount = 0;
+    if(useTimeAware){
+      const addresses = [origin.address, ...intermediates.map(o => o.address), destination.address];
+      const matrix = await computeRouteMatrixRequest(addresses);
+      const saidaMin = timeToMinutes(dayConfig.saida);
+      const { seq, score } = solveTimeAwareOrder(intermediates, matrix, dayConfig, saidaMin);
+      orderedIntermediates = seq.map(idx => intermediates[idx]);
+      violationCount = score.violations;
+    } else {
+      const data = await computeRoutesRequest({
+        origin: origin.address, destination: destination.address,
+        intermediates: intermediates.map(o => o.address),
+        optimizeWaypointOrder: true, fieldMask: 'routes.optimizedIntermediateWaypointIndex'
+      });
+      const order = data.routes?.[0]?.optimizedIntermediateWaypointIndex;
+      orderedIntermediates = Array.isArray(order) ? order.map(idx => intermediates[idx]) : intermediates;
+    }
+    orders = [origin, ...orderedIntermediates, destination];
+    renderOrders();
+    await saveOrders();
+    showToast(violationCount > 0
+      ? `Rota organizada — ${violationCount} pedido(s) ainda fora do horário (veja o Planejamento da Rota)`
+      : 'Rota organizada!');
+  } catch(e){
+    showToast('Não foi possível organizar a rota: ' + e.message);
+  } finally {
+    organizeBtn.disabled = false;
+    organizeBtn.textContent = originalLabel;
+  }
+}
+organizeBtn.addEventListener('click', organizeRoute);
+
+// ---------- ARRASTAR PARA REORDENAR ----------
+let dragState = null;
+function attachDragHandlers(){
+  document.querySelectorAll('.drag-handle').forEach(handle => { handle.onpointerdown = onDragStart; });
+}
+function onDragStart(e){
+  const ticket = e.target.closest('.ticket');
+  if(!ticket) return;
+  const rect = ticket.getBoundingClientRect();
+  const placeholder = document.createElement('div');
+  placeholder.className = 'ticket-placeholder';
+  placeholder.style.height = rect.height + 'px';
+  ticket.parentNode.insertBefore(placeholder, ticket);
+  dragState = { ticket, placeholder, offsetX: e.clientX-rect.left, offsetY: e.clientY-rect.top };
+  ticket.style.width = rect.width + 'px';
+  ticket.style.left = rect.left + 'px';
+  ticket.style.top = rect.top + 'px';
+  ticket.classList.add('dragging');
+  document.addEventListener('pointermove', onDragMove);
+  document.addEventListener('pointerup', onDragEnd);
+  e.preventDefault();
+}
+function onDragMove(e){
+  if(!dragState) return;
+  const { ticket, placeholder, offsetX, offsetY } = dragState;
+  ticket.style.left = (e.clientX-offsetX) + 'px';
+  ticket.style.top = (e.clientY-offsetY) + 'px';
+  const tickets = Array.from(ordersListEl.querySelectorAll('.ticket:not(.dragging)'));
+  const y = e.clientY;
+  let nextSibling = null;
+  for(const t of tickets){ const r = t.getBoundingClientRect(); if(y < r.top + r.height/2){ nextSibling = t; break; } }
+  if(nextSibling) ordersListEl.insertBefore(placeholder, nextSibling);
+  else ordersListEl.appendChild(placeholder);
+}
+function onDragEnd(){
+  if(!dragState) return;
+  const { ticket, placeholder } = dragState;
+  placeholder.replaceWith(ticket);
+  ticket.classList.remove('dragging');
+  ticket.style.left=''; ticket.style.top=''; ticket.style.width='';
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', onDragEnd);
+  const newIds = Array.from(ordersListEl.querySelectorAll('.ticket')).map(t => t.dataset.orderId);
+  orders = newIds.map(id => orders.find(o => o._id === id));
+  dragState = null;
+  renderOrders();
+  saveOrders();
+}
+
+// ---------- FINALIZAR ROTA ----------
+finalizeBtn.addEventListener('click', async () => {
+  if(orders.length === 0) return;
+  finalizeBtn.disabled = true;
+  try {
+    let legs = null;
+    if(hasGoogleMapsKey() && orders.length >= 2){
+      try { legs = await fetchRouteLegs(orders); } catch(e){ /* finaliza sem km, avisa depois */ }
+    }
+    const today = dateSuffix();
+    const route = await finalizeRouteRecord(today, JSON.parse(JSON.stringify(orders)), legs, activeRoute);
+    orders = [];
+    await saveDoc(todayKey(), orders);
+    activeRoute = null;
+    latestRoute = route;
+    showToast(legs ? `Rota ${route.seq} finalizada!` : `Rota ${route.seq} finalizada (sem km — configure a chave do Maps pra calcular)`);
+    renderOrders();
+    renderKpis();
+    renderMap();
+    document.getElementById('finishedBanner').style.display = 'block';
+    document.getElementById('finishedBanner').innerHTML = `Rota ${route.seq} de hoje finalizada. ` +
+      `<button class="btn btn-outline" id="reopenBtn" style="margin-left:8px;padding:6px 12px;font-size:12px;">Reabrir para editar</button>`;
+    document.getElementById('reopenedBadge').style.display = 'none';
+    document.getElementById('reopenBtn').addEventListener('click', async () => {
+      await reopenRoute(route);
+      showToast('Rota reaberta para edição');
+      location.reload();
+    });
+  } catch(e){
+    showToast('Não foi possível finalizar: ' + e.message);
+  } finally {
+    finalizeBtn.disabled = false;
+  }
+});
+
+init();
+</script>
+</body>
+</html>

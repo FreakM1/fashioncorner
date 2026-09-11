@@ -3,309 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pedido Rápido — protótipo v2</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Dashboard</title>
+<link rel="stylesheet" href="assets/styles.css">
 <style>
-  :root{
-    --ink:#2A2420; --paper:#FBF6F0; --paper-2:#F3EAE0;
-    --wine:#7B2D3E; --wine-dark:#5E212E; --gold:#B8923F;
-    --sage:#5C7A5E; --line:#E3D6C6; --muted:#8A7E70;
-  }
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Work Sans',sans-serif;-webkit-font-smoothing:antialiased;}
-  .wrap{max-width:1100px;margin:0 auto;padding:28px 20px 60px;}
-  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:22px;border-bottom:2px solid var(--ink);padding-bottom:14px;flex-wrap:wrap;}
-  header h1{font-family:'Fraunces',serif;font-weight:600;font-size:26px;margin:0;letter-spacing:-0.01em;}
-  header .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
-  .grid{display:grid;grid-template-columns:1.15fr 0.85fr;gap:22px;align-items:start;}
-  @media (max-width:860px){.grid{grid-template-columns:1fr;}}
-  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;}
-  .section-title{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--wine);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
-  .section-title::after{content:'';flex:1;height:1px;background:var(--line);}
-  .row-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .row-head .section-title{margin:0;flex:1;}
-  .link-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;background:none;border:none;color:var(--wine);cursor:pointer;text-decoration:underline;padding:0;white-space:nowrap;margin-left:10px;}
-  .search-box{position:relative;}
-  input[type=text],input[type=tel],input[type=time],textarea,select{
-    width:100%;font-family:'Work Sans',sans-serif;font-size:14.5px;padding:11px 13px;
-    border:1.5px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);outline:none;transition:border-color .15s;
-  }
-  input:focus,textarea:focus,select:focus{border-color:var(--wine);}
-  label.f-label{display:block;font-size:11.5px;color:var(--muted);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.04em;}
-  .results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(42,36,32,.12);max-height:280px;overflow-y:auto;z-index:20;display:none;}
-  .results.open{display:block;}
-  .result-item{padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);gap:10px;}
-  .result-item:last-child{border-bottom:none;}
-  .result-item:hover{background:var(--paper-2);}
-  .result-item .rname{font-weight:500;}
-  .result-item .rcity{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;}
-  .result-empty{padding:14px;color:var(--muted);font-size:13px;}
-  .selected-client{margin-top:16px;display:none;}
-  .selected-client.show{display:block;}
-  .client-name-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .client-name-row h2{font-family:'Fraunces',serif;font-size:19px;margin:0;}
-  .city-pill{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);border:1px solid var(--line);padding:3px 9px;border-radius:20px;}
-  .addr-list{display:flex;flex-direction:column;gap:8px;}
-  .addr-card{border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;}
-  .addr-card:hover{border-color:var(--gold);}
-  .addr-card.selected{border-color:var(--wine);background:#FBF0F2;}
-  .addr-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
-  .type-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:20px;background:var(--paper-2);color:var(--ink);}
-  .principal-star{color:var(--gold);font-size:13px;}
-  .addr-text{font-size:14px;line-height:1.4;}
-  .addr-extra{font-size:12.5px;color:var(--muted);margin-top:3px;}
-  .pill-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
-  .pill-toggle,.tw-pill{padding:9px 14px;border-radius:20px;border:1.5px solid var(--line);background:#fff;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;}
-  .pill-toggle.active,.tw-pill.active{border-color:var(--wine);background:var(--wine);color:#fff;}
-  .obs-field{margin-top:4px;}
-  textarea{resize:vertical;min-height:40px;font-size:13.5px;}
-  .add-btn{margin-top:16px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--ink);color:#fff;font-family:'Work Sans',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;transition:background .15s;}
-  .add-btn:disabled{background:#D8CFC3;cursor:not-allowed;}
-  .add-btn:not(:disabled):hover{background:var(--wine-dark);}
-  .add-btn.secondary{background:#fff;color:var(--wine);border:1.5px solid var(--wine);}
-  .add-btn.secondary:hover{background:#FBF0F2;}
-  .subform{border:1.5px dashed var(--line);border-radius:12px;padding:16px;margin-top:14px;display:none;background:var(--paper);}
-  .subform.open{display:block;}
-  .subform-title{font-family:'Fraunces',serif;font-size:15px;margin:0 0 4px;}
-  .addr-block{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;background:#fff;}
-  .addr-block-head{display:flex;justify-content:space-between;align-items:center;}
-  .addr-block-head span{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);text-transform:uppercase;}
-  .check-row{display:flex;align-items:center;gap:7px;margin-top:10px;font-size:13px;}
-  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .form-actions{display:flex;gap:8px;margin-top:14px;}
-  .form-actions .add-btn{margin-top:0;}
-  .small-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px;}
-  .small-x:hover{color:var(--wine);}
-  .orders-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
-  .orders-count{font-family:'Fraunces',serif;font-size:20px;}
-  .orders-count span{color:var(--wine);}
-  .orders-actions{display:flex;gap:8px;flex-wrap:wrap;}
-  .icon-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink);}
-  .icon-btn:hover{border-color:var(--wine);color:var(--wine);}
-  .empty-state{text-align:center;padding:36px 10px;color:var(--muted);font-size:13.5px;}
-  .ticket{border:1.5px dashed var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;background:linear-gradient(180deg,#fff,#fffdfb);}
-  .ticket.avulsa{border-style:solid;background:var(--paper-2);}
-  .ticket .num{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#fff;background:var(--wine);width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
-  .ticket.avulsa .num{background:var(--ink);}
-  .ticket .body{flex:1;min-width:0;}
-  .ticket .tname{font-weight:600;font-size:14.5px;}
-  .ticket .taddr{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4;}
-  .ticket .tmeta{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}
-  .pill{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--paper-2);}
-  .ticket .tobs{font-size:12px;color:var(--wine);margin-top:4px;font-style:italic;}
-  .ticket .actions{display:flex;flex-direction:column;gap:4px;}
-  .mini-btn{border:1px solid var(--line);background:#fff;border-radius:6px;width:26px;height:22px;font-size:12px;cursor:pointer;color:var(--muted);line-height:1;}
-  .mini-btn:hover{border-color:var(--wine);color:var(--wine);}
-  .drag-handle{cursor:grab;touch-action:none;color:var(--muted);font-size:15px;padding:0 4px;user-select:none;line-height:1;}
-  .drag-handle:active{cursor:grabbing;}
-  .ticket.dragging{position:fixed;z-index:200;pointer-events:none;cursor:grabbing;box-shadow:0 18px 36px -12px rgba(42,36,32,.35);transform:rotate(1.5deg);margin:0;}
-  .ticket-placeholder{border:1.5px dashed var(--gold);border-radius:10px;margin-bottom:10px;background:var(--paper-2);}
-  .edit-form{width:100%;}
-  .edit-form select, .edit-form textarea{margin-top:6px;}
-  .edit-pill{padding:7px 12px;border-radius:20px;border:1.5px solid var(--line);background:#fff;font-size:12.5px;font-weight:500;cursor:pointer;}
-  .edit-pill.active{border-color:var(--wine);background:var(--wine);color:#fff;}
-  .edit-pill-group{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
-  .edit-actions{display:flex;gap:8px;margin-top:10px;}
-  .edit-actions button{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--line);background:#fff;font-size:13px;font-weight:600;cursor:pointer;}
-  .edit-actions .save-btn{background:var(--ink);color:#fff;border-color:var(--ink);}
-  .edit-actions .save-btn:hover{background:var(--wine-dark);}
-  .route-link{display:block;margin-top:12px;padding:11px 14px;background:var(--paper-2);border-radius:10px;font-size:13px;text-decoration:none;color:var(--wine);font-weight:600;text-align:center;}
-  .route-link:hover{background:#F1E0E4;}
-  .organize-btn{display:block;width:100%;margin-top:12px;padding:11px 14px;border-radius:10px;font-size:13px;font-family:'Work Sans',sans-serif;font-weight:600;text-align:center;background:#fff;border:1.5px solid var(--wine);color:var(--wine);cursor:pointer;}
-  .organize-btn:hover{background:#FBF0F2;}
-  .organize-btn:disabled{opacity:.6;cursor:not-allowed;}
-  .note{margin-top:0;font-size:12px;color:var(--muted);line-height:1.5;}
-  .card.note-card{background:var(--paper-2);border:none;}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;opacity:0;transition:all .25s;pointer-events:none;font-family:'Work Sans',sans-serif;z-index:50;}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:900px){.grid2{grid-template-columns:1fr;}}
+  .bar-chart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:6px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .bar{width:100%;max-width:26px;background:var(--wine);border-radius:5px 5px 0 0;min-height:2px;}
+  .bar-day{font-size:10.5px;color:var(--muted);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
+  .promo-card{background:linear-gradient(135deg,var(--wine) 0%,var(--wine-dark) 100%);color:#fff;border-radius:14px;padding:22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .promo-card h3{font-family:'Fraunces',serif;font-size:19px;margin:0;font-weight:600;}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Pedido Rápido</h1>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-      <div class="tag" id="clientCount">protótipo v3</div>
-      <div class="tag" id="syncStatus" style="display:flex;align-items:center;gap:6px;">
-        <span id="syncDot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;"></span>
-        <span id="syncText">verificando...</span>
-        <button class="link-btn" id="refreshBtn" style="margin-left:4px;">atualizar</button>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page">
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Pedidos hoje</div><div class="kpi-value" id="kpiPedidos">0</div><div class="kpi-delta" id="kpiPedidosDelta"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Entregues</div><div class="kpi-value" id="kpiEntregues">0</div><div class="kpi-delta" id="kpiEntreguesDelta"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Pendentes</div><div class="kpi-value" id="kpiPendentes">0</div><div class="kpi-delta" id="kpiPendentesDelta"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Km rodados hoje</div><div class="kpi-value" id="kpiKm">0 km</div></div>
       </div>
-      <a href="planejamento.html" class="link-btn" style="margin-left:4px;">Planejamento da rota →</a>
-    </div>
-  </header>
 
-  <div class="grid">
-    <div>
-      <div class="card">
-        <div class="row-head">
-          <div class="section-title">Buscar cliente</div>
-          <button class="link-btn" id="toggleNewClient">+ nova cliente</button>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Rota do dia</div>
+          <div id="rotaAtualBody"></div>
         </div>
-        <div class="search-box">
-          <input type="text" id="searchInput" placeholder="Digite o nome da cliente..." autocomplete="off">
-          <div class="results" id="results"></div>
-        </div>
-
-        <!-- form: nova cliente -->
-        <div class="subform" id="newClientForm">
-          <div class="subform-title">Cadastrar nova cliente</div>
-          <label class="f-label">Nome</label>
-          <input type="text" id="ncName" placeholder="Nome completo">
-          <div class="two-col">
-            <div>
-              <label class="f-label">Cidade</label>
-              <input type="text" id="ncCity" placeholder="Ex: Campinas">
-            </div>
-            <div>
-              <label class="f-label">Telefone (opcional)</label>
-              <input type="tel" id="ncPhone" placeholder="19999999999">
-            </div>
-          </div>
-          <label class="f-label">Endereço</label>
-          <select id="ncType">
-            <option>Casa</option><option>Trabalho</option><option>Outro</option>
-          </select>
-          <input type="text" id="ncAddress" placeholder="Rua, número - bairro, cidade - UF, CEP" style="margin-top:8px;">
-          <div class="two-col" style="margin-top:8px;">
-            <input type="text" id="ncComplement" placeholder="Complemento (bloco, apto...)">
-            <input type="text" id="ncObs" placeholder="Referência / observação">
-          </div>
-          <div class="form-actions">
-            <button class="add-btn" id="ncSave">Salvar cliente</button>
-            <button class="add-btn secondary" id="ncCancel">Cancelar</button>
-          </div>
-        </div>
-
-        <div class="selected-client" id="selectedClient">
-          <div class="client-name-row">
-            <h2 id="scName"></h2>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <div class="city-pill" id="scCity"></div>
-              <button class="link-btn" id="toggleEditClient" style="margin:0;">editar cadastro</button>
-            </div>
-          </div>
-
-          <div class="row-head">
-            <div class="section-title" style="margin:0;flex:1;">Endereço</div>
-            <button class="link-btn" id="toggleNewAddr">+ novo endereço</button>
-          </div>
-          <div class="addr-list" id="addrList"></div>
-
-          <div class="subform" id="newAddrForm">
-            <div class="subform-title">Novo endereço para esta cliente</div>
-            <div class="two-col">
-              <select id="naType"><option>Casa</option><option>Trabalho</option><option>Outro</option></select>
-              <label class="check-row" style="margin:0;"><input type="checkbox" id="naPrincipal"> Marcar como principal</label>
-            </div>
-            <input type="text" id="naAddress" placeholder="Rua, número - bairro, cidade - UF, CEP" style="margin-top:8px;">
-            <div class="two-col" style="margin-top:8px;">
-              <input type="text" id="naComplement" placeholder="Complemento">
-              <input type="text" id="naObs" placeholder="Referência / observação">
-            </div>
-            <div class="form-actions">
-              <button class="add-btn" id="naSave">Salvar endereço</button>
-              <button class="add-btn secondary" id="naCancel">Cancelar</button>
-            </div>
-          </div>
-
-          <div class="subform" id="editClientForm">
-            <div class="subform-title">Editar cadastro da cliente</div>
-            <label class="f-label">Nome</label>
-            <input type="text" id="ecName">
-            <div class="two-col">
-              <div><label class="f-label">Cidade</label><input type="text" id="ecCity"></div>
-              <div><label class="f-label">Telefone</label><input type="tel" id="ecPhone"></div>
-            </div>
-            <label class="f-label">Endereços</label>
-            <div id="ecAddrBlocks"></div>
-            <button class="link-btn" id="ecAddAddr" style="margin-top:10px;">+ adicionar outro endereço</button>
-            <div class="form-actions">
-              <button class="add-btn" id="ecSave">Salvar alterações</button>
-              <button class="add-btn secondary" id="ecCancel">Cancelar</button>
-            </div>
-          </div>
-
-          <div class="section-title" style="margin-top:16px;">Tipo de atendimento</div>
-          <div class="pill-group" id="modalPills">
-            <button class="pill-toggle" data-mode="ENTREGA">Entrega</button>
-            <button class="pill-toggle" data-mode="RETIRAR MALA">Retirar mala</button>
-            <button class="pill-toggle" data-mode="RETIRADA">Retirada</button>
-            <button class="pill-toggle" data-mode="DEIXAR MALA">Deixar mala</button>
-            <button class="pill-toggle" data-mode="PROVA NA HORA">Prova na hora</button>
-            <button class="pill-toggle" data-mode="TROCA">Troca</button>
-            <button class="pill-toggle" data-mode="PIPOCA">Pipoca</button>
-            <button class="pill-toggle" data-mode="CORREIO">Correio</button>
-          </div>
-          <div id="correioQty" style="display:none;margin-top:8px;">
-            <label class="f-label">Quantos pacotes?</label>
-            <input type="number" id="correioQtyInput" min="1" placeholder="Ex: 4" style="max-width:120px;">
-          </div>
-
-          <div class="section-title" style="margin-top:16px;">Horário da entrega</div>
-          <div class="pill-group" id="twPills">
-            <button type="button" class="tw-pill active" data-tw="none">Sem horário</button>
-            <button type="button" class="tw-pill" data-tw="before">Antes de</button>
-            <button type="button" class="tw-pill" data-tw="after">Depois de</button>
-          </div>
-          <div id="twTimeBox" style="display:none;margin-top:8px;">
-            <input type="time" id="twTimeInput" style="max-width:140px;">
-          </div>
-
-          <label class="f-label">Observação do pedido (opcional)</label>
-          <textarea id="obsInput" placeholder="Ex: 3 peças, ligar antes de subir..."></textarea>
-
-          <button class="add-btn" id="addBtn" disabled>Adicionar à rota de hoje</button>
+        <div class="card">
+          <div class="card-title">Resumo da semana</div>
+          <div class="bar-chart" id="weekChart"></div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="row-head"><div class="section-title">Parada avulsa (algo pontual, sem cadastro)</div></div>
-        <label class="f-label">Nome da parada</label>
-        <input type="text" id="avName" placeholder="Ex: Correios - Agência Cambuí">
-        <label class="f-label">Endereço</label>
-        <input type="text" id="avAddress" placeholder="Endereço completo">
-        <label class="f-label">Observação (opcional)</label>
-        <input type="text" id="avObs" placeholder="Ex: deixar 3 pacotes">
-
-        <div class="section-title" style="margin-top:16px;">Horário da entrega</div>
-        <div class="pill-group" id="avTwPills">
-          <button type="button" class="tw-pill active" data-tw="none">Sem horário</button>
-          <button type="button" class="tw-pill" data-tw="before">Antes de</button>
-          <button type="button" class="tw-pill" data-tw="after">Depois de</button>
+      <div class="grid2">
+        <div class="promo-card">
+          <h3>Moda que movimenta histórias</h3>
+          <span style="font-size:22px;">♥</span>
         </div>
-        <div id="avTwTimeBox" style="display:none;margin-top:8px;">
-          <input type="time" id="avTwTimeInput" style="max-width:140px;">
-        </div>
-
-        <button class="add-btn secondary" id="avAdd" style="margin-top:14px;">Adicionar parada à rota</button>
-      </div>
-    </div>
-
-    <div>
-      <div class="card">
-        <div class="orders-head">
-          <div class="orders-count"><span id="ordersTotal">0</span> paradas hoje <span id="syncStatus" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);font-weight:400;"></span></div>
-          <div class="orders-actions">
-            <button class="icon-btn" id="copyBtn">Copiar lista p/ motoboy</button>
-            <button class="icon-btn" id="exportBtn">Baixar cadastro atualizado</button>
-            <button class="icon-btn" id="clearBtn">Limpar</button>
-          </div>
-        </div>
-        <div id="ordersList">
-          <div class="empty-state">Nenhuma parada adicionada ainda.</div>
-        </div>
-        <button class="organize-btn" id="organizeBtn" style="display:none;">Organizar rota</button>
-        <button class="add-btn" id="finalizeBtn" style="display:none;margin-top:10px;">Finalizar rota</button>
-        <a href="#" target="_blank" class="route-link" id="routeLink" style="display:none;">Abrir rota no Google Maps →</a>
-      </div>
-
-      <div class="card note-card">
-        <div class="note">
-          <strong>Como usar:</strong> os dados dos pedidos e as clientes cadastradas na sessão ficam só na memória desta aba. Se for fechar e continuar depois (ou passar pra outra pessoa usar), clique em "Baixar cadastro atualizado" antes de sair — isso salva um arquivo com as clientes novas que você cadastrou, no mesmo formato do seu backup original. Numa versão definitiva isso ficaria salvo automaticamente, sem precisar desse passo manual.
+        <div class="card">
+          <div class="card-title">Última rota finalizada</div>
+          <div id="lastRouteBody"></div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
@@ -316,877 +62,91 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="assets/shared.js"></script>
+<script src="assets/shell.js"></script>
 <script>
-const DEFAULT_CLIENTS = [{"n":"LUANA DAMACENO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Avenida Ary Rodrigues, 315 - Parque das Camelias, Campinas - SP, 13052-550","x":"Bloco 01 - Apto 42","o":"","p":true}]},{"n":"RAFAELA VENANCIO","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Sempre Vivas, 433 - Jardim Sao Sebastiao, Hortolândia - SP","x":"","o":"","p":true},{"t":"Casa","e":"R. Maria Julinda de Pina Pereira, 794 - JARDIM FIGUEIRAS II, Hortolândia - SP, 13184-248","x":"","o":"","p":false}]},{"n":"SANDRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Anita Moretzsohn, 7 - Jardim Santana, Campinas - SP, 13088-603","x":"","o":"","p":true}]},{"n":"SILMARA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Joel Martins dos Santos, 441 - Jardim Itaguacu II, Campinas - SP, 13053-196","x":"","o":"Casa de esquina","p":true}]},{"n":"RENATA FERNANDES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Maria Edna Vilagelin Zakia, 485 - Parque Via Norte, Campinas - SP, 13065-640","x":"Maria's Bowl ","o":"Sorveteria ","p":true}]},{"n":"GABRIELLY PAULA","f":"19993700820","c":"Campinas","a":[{"t":"Trabalho","e":"QEntrega, R. Sylvia da Silva Braga, 415 - Jardim Santa Monica, Campinas - SP, 13082-080","x":"","o":"Empresa Azul","p":true}]},{"n":"GABRIELA LIMA","f":"19982591927","c":"Campinas","a":[{"t":"Trabalho","e":"R. Amélia Bueno, 301 - Taquaral, Campinas - SP, 13076-050","x":"Espaço 301 de Eventos ","o":"Ao lado do posto de gasolina","p":true}]},{"n":"GLEICA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Ame Concept","o":"","p":true},{"t":"Outro","e":"Av. José Bonifácio, 2120 - Jardim das Paineiras, Campinas - SP, 13092-305","x":"","o":"","p":false}]},{"n":"JILSANDRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Maria Grassi Sinigaglia, 128 - Recanto Fortuna, Campinas - SP, 13082-572","x":"Bloco C - Apto 41","o":"","p":true}]},{"n":"TAIRINY LEAL","f":"19995094435","c":"Campinas","a":[{"t":"Casa","e":"R. Jorn Ernesto Nápoli, 1120 - Jardim Campos Elíseos, Campinas - SP, 13060-072","x":"Bloco 04 - Apto 13","o":"","p":true}]},{"n":"PAMELLA CANDIDO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Sacramento, 750 - Centro, Campinas - SP, 13023-185","x":"Apto 127","o":"","p":true}]},{"n":"PAMELA CRISTINA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Angicos, 125 - Vila Boa Vista, Campinas - SP, 13064-788","x":"","o":"","p":true}]},{"n":"HAYALA BRITO","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. dos Estudantes, 505 - Jardim do Bosque, Hortolândia - SP, 13186-170","x":"Torre 02 - Apto 235","o":"","p":true},{"t":"Trabalho","e":" Av. dos Pioneiros, 430 - Santa Terezinha, Paulínia - SP, 13140-000","x":"MK Nakashima Beauty Salon","o":"","p":false},{"t":"Trabalho","e":"R. 7 de Setembro, 350 - Parque Ortolândia, Hortolândia - SP, 13184-000","x":"MANICURE","o":"","p":false}]},{"n":"DANY GERMANO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Ângelo Simões, 964 - Jardim Leonor, Campinas - SP, 13041-150","x":"","o":"","p":true}]},{"n":"MIRIAM JUNQUEIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Francisco de Paula Oliveira Nazareth, 570 - Parque Industrial, Campinas - SP, 13031-440","x":"","o":"","p":false},{"t":"Casa","e":"Av. das Amoreiras, 633 - Parque Italia, Campinas - SP, 13036-225","x":"Torre 01 - Apto 53","o":"","p":true}]},{"n":"ELUANE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. José Leite Penteado, 670 - Jardim Campo Belo, Campinas - SP, 13053-142","x":"","o":"","p":true}]},{"n":"KAREN QUITABATAQUE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Fernão Pompeu de Camargo, 2171 - Jardim do Trevo, Campinas - SP, 13040-010","x":"Serraf autopeças ","o":"","p":true}]},{"n":"INGRID CAROLINE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua das Oliveiras, 201 - Parque Via Norte, Campinas - SP, 13064-772","x":"","o":"","p":true}]},{"n":"GLAUCIA","f":"","c":"Campinas","a":[{"t":"Outro","e":"R. Antônio Maria Brandão, 83 - Jardim Eulina, Campinas - SP, 13063-070","x":"","o":"","p":true},{"t":"Outro","e":"Condominio Colinas de Monaco - R. Um, 45 - Jardim Nova abolição, Campinas - SP, 13046-491","x":"","o":"","p":false}]},{"n":"NATHALIA AVANÇO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. José Galgano, 57 - Parque Via Norte, Campinas - SP, 13065-050","x":"Casa 57 B","o":"","p":true}]},{"n":"LOUISE FARIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Francisco de Assis Pupo, 507 - Vila Industrial (Campinas), Campinas - SP, 13035-000","x":"Apto 32","o":"","p":true}]},{"n":"PATRICIA JULIANA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. São Cosme, 05 - Jardim Santa Terezinha (Nova Veneza), Sumaré - SP, 13180-310","x":"Bloco 4 - Apto 32","o":"","p":true}]},{"n":"MARIA LUIZA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Aristeu Augusto, 146 - Parque Via Norte, Campinas - SP, 13065-230","x":"","o":"","p":true},{"t":"Casa","e":"R. Eduardo García, 167 - Parque Via Norte, Campinas - SP, 13065-706","x":"","o":"","p":false}]},{"n":"BRUNA KAROLINE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Gil Vicente, 600 - Jardim Nossa Sra. Auxiliadora, Campinas - SP, 13067-000","x":"Dona Baunilha ","o":"","p":true}]},{"n":"BEATRIZ SILVA","f":"19995358445","c":"Campinas","a":[{"t":"Casa","e":"R. Papa São Fabião, 455 - Conj. Hab. Padre Anchieta, Campinas - SP","x":"Condominio não tem portaria ","o":"","p":true},{"t":"Trabalho","e":"CEI SÃO BENTO, Rua Ovídio Coluccini - Conj. Res. Parque Sao Bento, Campinas - SP, 13058-148","x":"Creche.","o":"","p":false}]},{"n":"BIANCA MOREIRA","f":"19983127822","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED ","o":"","p":true}]},{"n":"VANUZA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Domingos Stivalle, 36 - Parque Via Norte, Campinas - SP, 13065-051","x":"","o":"","p":true}]},{"n":"ALESSANDRA MOREIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Rev Constâncio Homero Ômega, 474 - Cidade Jardim, Campinas - SP, 13050-434","x":"","o":"","p":true}]},{"n":"THAINA COELHO","f":"19998010103","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED ","o":"","p":true},{"t":"Casa","e":"R. Joaquim Domingos de Oliveira, 92 - Chácaras Fazenda Coelho, Hortolândia - SP, 13185-502","x":"Bloco 4 - Apto 303","o":"","p":false}]},{"n":"CARLA FELL","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Dr. Albano de Almeida Lima, 489 - Jardim Guanabara, Campinas - SP, 13073-131","x":"Visage Estética","o":"","p":true}]},{"n":"HELLEN TAJRA","f":"19987087412","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 3345 - Jardim Campinas, Campinas - SP, 13076-269","x":"","o":"","p":true}]},{"n":"LARISSA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Francisco Mesquita, 110 - Vila Brandina, Campinas - SP, 13092-511","x":"","o":"","p":true}]},{"n":"JHENIFFER COSTA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Adão Hofman, 44 - Vila Industrial (Campinas), Campinas - SP, 13035-010","x":"","o":"","p":true},{"t":"Trabalho","e":"R. Aristeu Augusto, 146 - Parque Via Norte, Campinas - SP, 13065-230","x":"","o":"","p":false}]},{"n":"MARINA SANTANA","f":"19984448166","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED ","o":"","p":true}]},{"n":"CAMILA BERNARDES","f":"19993260048","c":"Campinas","a":[{"t":"Trabalho","e":"R. Henrique Veiga, 5 - Jardim Santa Genebra, Campinas - SP, 13080-290","x":"LUXOTTICA","o":"","p":true}]},{"n":"JULIA NOLETO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED","o":"","p":true}]},{"n":"GABRIELA TALPO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Monte Castelo, 307 - Jardim Proença, Campinas - SP, 13026-241","x":"","o":"","p":true}]},{"n":"BIANCA LANGE","f":"","c":"Sumaré","a":[{"t":"Casa","e":"Av. Emílio Bôsco, 1745 - Jardim Lucia (Nova Veneza), Sumaré - SP","x":"Bloco 2 - Apto 36","o":"","p":true}]},{"n":"JADE CRISTINA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Dom Barreto, 290 - Centro, Sumaré - SP, 13170-002","x":"Apto 108","o":"","p":true}]},{"n":"JESSICA PAULA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"PATRICIA DIAS","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"RENATA PEREIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Governador Pedro de Toledo, 2436 - Bonfim, Campinas - SP, 13070-715","x":"VS Espuma ","o":"William que recebe ","p":true}]},{"n":"LETICIA SANTIAGO","f":"19996759854","c":"Campinas","a":[{"t":"Casa","e":"Av. Mal. Rondon, 1322 - Jardim Quarto Centenário, Campinas - SP, 13070-173","x":"","o":"","p":false},{"t":"Trabalho","e":"R. Mário Siqueira, 832 - Botafogo, Campinas - SP, 13020-210","x":"","o":"","p":true}]},{"n":"CATHARINA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Mal. Rondon, 1638 - Jardim Chapadão, Campinas - SP, 13070-176","x":"Elite Academia ","o":"","p":true}]},{"n":"INGRID BUENO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Papa João Paulo II, 1068 - Conj. Hab. Padre Anchieta, Campinas - SP, 13068-219","x":"Loja de roupa - TRAKINAS","o":"","p":true}]},{"n":"TALITA MENDES","f":"19984056029","c":"Campinas","a":[{"t":"Casa","e":"R. Leonor Santos, 8 - Recanto do Sol I, Campinas - SP, 13056-524","x":"","o":"","p":true},{"t":"Trabalho","e":"Av. Dr. Romeu Tortima, 452 - Jardim Santa Genebra II (Barao Geraldo)","x":"","o":"","p":false}]},{"n":"CARLA MALTA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. José Carlos de Oliveira Brito, 19 - Res. Nova Bandeirante, Campinas - SP, 13052-625","x":"","o":"","p":true},{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151","x":"EMBRACON","o":"","p":false}]},{"n":"PATRICIA VETTE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. João Carlos Nougues, 1015 - Jardim do Lago, Campinas - SP, 13050-011","x":"","o":"","p":true}]},{"n":"VIVIANE SAVI","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Coronel Quirino, 1275 - Centro, Campinas - SP, 13025-002","x":"","o":"","p":true}]},{"n":"ADRIANA LOPES","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Av. Santana, 1520 - Jardim Amanda I, Hortolândia - SP, 13188-000","x":"Torre 01 - Apto 1203","o":"","p":true},{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151 | Time Center (Empresa Embracon)","x":"EMBRACON","o":"","p":false}]},{"n":"ADRIANA NABOR","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Av. Santana, 1520 - Jardim Amanda I, Hortolândia - SP, 13188-000","x":"Torre 01 - Apto 202 ","o":"","p":true},{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151","x":"EMBRACON","o":"","p":false}]},{"n":"HELEN CRISTINA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. José Fonseca de Arruda, 606 - Jardim dos Oliveiras, Campinas - SP, 13044-130","x":"","o":"","p":true}]},{"n":"MARIANA MITICA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Ana Téles Moreira, 293 - Jardim Samambaia, Campinas - SP, 13046-505","x":"Salão de beleza ","o":"","p":true},{"t":"Casa","e":"Rua Antonieta Quattrer Serra, 157 - Pte. Preta, Campinas - SP, 13046-105","x":"","o":"","p":false}]},{"n":"GABRIELA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Vitor Meirelles, 375 - Jardim Samambaia, Campinas - SP, 13046-545","x":"Bloco 2 - Apto 124","o":"","p":true}]},{"n":"CAMILA VIEIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Anita Moretzsohn, 7 - Jardim Santana, Campinas - SP, 13088-603","x":"","o":"","p":true},{"t":"Casa","e":"R. Peró de Campos Tourinho, 65 - Parque Taquaral, Campinas - SP, 13087-016","x":"","o":"","p":false}]},{"n":"JULIA ROMANO","f":"19974073066","c":"Campinas","a":[{"t":"Trabalho","e":"R. Maria Monteiro, 1599 - Cambuí, Campinas - SP, 13025-152","x":"Veterinario ","o":"porta preta na lateral","p":true},{"t":"Casa","e":"Av. das Amoreiras, 4001 - Vila Mimosa, Campinas - SP, 13050-055","x":"TORRE 3 - APTO 117","o":"","p":false}]},{"n":"CORREIO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. João Erbolato, 288 - Jardim Chapadão, Campinas - SP, 13070-070","x":"","o":"","p":true}]},{"n":"GRENDA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Cad Dirceu Vedovelho, 47 - Conj. Hab. Parque da Floresta, Campinas - SP, 13058-134","x":"","o":"","p":true}]},{"n":"HAYME BRITO","f":"","c":"Hortolândia","a":[{"t":"Trabalho","e":"R. 7 de Setembro, 350 - Parque Ortolândia, Hortolândia - SP, 13184-000","x":"Manicure ","o":"","p":true}]},{"n":"PAULA PAVAN","f":"","c":"Valinhos","a":[{"t":"Casa","e":"R. Dr. Antônio de Castro Prado, 349 - Vila Clayton, Valinhos - SP, 13276-090","x":"","o":"","p":true}]},{"n":"SARAH BELINTANI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Caetés, 141 - Vila Costa e Silva, Campinas - SP, 13081-210","x":"","o":"","p":false},{"t":"Trabalho","e":"R. Camargo Pimentel, 424 - Jardim Guanabara, Campinas - SP, 13073-340","x":"","o":"","p":true}]},{"n":"POLIANA CARDELI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Antônia Ribeiro de Lima, 26 - Parque São Jorge, Campinas - SP, 13064-832","x":"Bloco H - Apto 33","o":"","p":true}]},{"n":"ANA CAROLINE VERONEZI","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Santa Rita do Passa Quatro, 85 - Jardim Nova Europa, Campinas - SP, 13040-108","x":"Bloco 03 - Apto 705","o":"","p":true}]},{"n":"NATALIA DE RIZ","f":"19993030133","c":"Hortolândia","a":[{"t":"Casa","e":"R. Venezuela, 270 - Jardim Santa Clara do Lago II, Hortolândia - SP, 13186-472","x":"Bloco i - Apto 51","o":"","p":true}]},{"n":"FERNANDA MOREIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Adalberto Patrocínio de Araújo, 108 - Jardim Sao Domingos, Campinas - SP, 13053-314","x":"","o":"","p":true}]},{"n":"GABRIELI ZORZANELLO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Cormorão, 143 - Vila Padre Manoel de Nobrega, Campinas - SP, 13061-351","x":"Bloco B - Apto 13","o":"","p":true}]},{"n":"LUCILEIDE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 3345 - Jardim Campinas, Campinas - SP, 13076-269","x":"","o":"","p":true}]},{"n":"BRUNA FAIS","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. dos Alecrins, 246 - Cambuí, Campinas - SP, 13024-411","x":"Apto 61.","o":"","p":true}]},{"n":"GABRIELA MATIAZZI","f":"11939440409","c":"Campinas","a":[{"t":"Casa","e":"R. Rodrigo Otávio, 214 - Botafogo, Campinas - SP, 13020-390","x":"Apto 44","o":"","p":true}]},{"n":"TAMIRES PARIZ","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Ana Beatriz Bierrembach, 506 - Vila Mimosa, Campinas - SP, 13050-060","x":"MC TOTAL VEÍCULOS","o":"","p":true}]},{"n":"PALOMA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Salgueiros, 123 - Vila Boa Vista, Campinas - SP, 13064-741","x":"","o":"","p":true}]},{"n":"MANUELA PAZETTI","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Carolina Pasquim Antonioli, 215 - Barão Geraldo, Campinas - SP, 13084-180","x":"","o":"","p":true}]},{"n":"IDERLEI JUNIOR","f":"","c":"","a":[{"t":"Casa","e":"Casa (R. Ana Borges Orsolini, 564 - Parque Via Norte)","x":"Sala 103","o":"Predio torre do castelo ","p":true}]},{"n":"PAMELA MOREIRA","f":"19982668017","c":"Campinas","a":[{"t":"Casa","e":"R. Antônio Rodrigues Moreira Neto, 144 - Jardim Pauliceia, Campinas - SP, 13060-073","x":"","o":"","p":true},{"t":"Trabalho","e":"Av. John Dalton, 301 - Techno Park, Campinas - SP, 13069-330","x":"","o":"Condominio Techno Plaza - Daterra","p":false}]},{"n":"KAROLINE GREGO","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. José dos Passos, 544 - Jardim São Domingos, Sumaré - SP, 13174-070","x":"Casa de fundo portão pequeno","o":"","p":true}]},{"n":"HADASSA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Prof. Vicente Ferreira Bueno, 477 - Jardim Campo Belo, Sumaré - SP, 13174-220","x":"","o":"","p":true}]},{"n":"JENIFFER PINHATI","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. São Cosme, 5 - Jardim Santa Terezinha (Nova Veneza), Sumaré - SP, 13180-290","x":"Bloco 30 - Apto 21","o":"","p":true}]},{"n":"GIOVANA BARBANTO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Elías Antônio Sayeg, 6 - Conj. Hab. Vila Reggio, Campinas - SP, 13067-630","x":"","o":"","p":true}]},{"n":"DANIELA BOTELHO","f":"19993569679","c":"Campinas","a":[{"t":"Casa","e":"R. Mauro Florêncio Moreno, 50 - Parque Via Norte, Campinas - SP, 13065-803","x":"","o":"","p":true}]},{"n":"BEATRIZ QUEZADA","f":"19971567693","c":"Campinas","a":[{"t":"Trabalho","e":"R. Frederico Ozanan, 67 - Vila Joaquim Inacio, Campinas - SP, 13045-640","x":"Loja Juarez","o":"","p":false},{"t":"Casa","e":"Av. das Andorinhas, 477 - Jardim Andorinhas, Campinas - SP, 13101-400","x":"Bloco T Ap 32","o":"","p":true}]},{"n":"DIELE LIMA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Brasil, 1163 - Jardim Guanabara, Campinas - SP, 13073-148","x":"UP formaturas","o":"","p":true}]},{"n":"RACHEL DA SILVA","f":"19997955223","c":"Campinas","a":[{"t":"Trabalho","e":"Samsonite, Av. Iguatemi, 777 - Vila Brandina, Campinas - SP, 13092-902","x":"","o":"","p":true}]},{"n":"VANESSA BRAMBILA","f":"19971291892","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Lauro Vannucci, 348 - Fazenda Santa Cândida, Campinas - SP, 13087-548","x":"","o":"","p":true},{"t":"Trabalho","e":"R. Júlio Tim, 600 - Jardim Ipaussurama, Campinas - SP, 13060-824","x":"Pastel do Renato","o":"","p":false},{"t":"Outro","e":"R. Dona Neuza Goulart Brizola, 101 - Parque Res. Vila União, Campinas - SP, 13060-766","x":"","o":"","p":false}]},{"n":"NICOLE TASSI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Júlio Tim, 396 - Jardim Ipaussurama, Campinas - SP, 13024-490","x":"Bloco H - Apto 44","o":"","p":true},{"t":"Trabalho","e":"Av. Pres. Juscelino, 2282 - Jardim Ipaussurama, Campinas - SP, 13060-524","x":"","o":"","p":false}]},{"n":"ANA POZZE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Mateus Macari, 175 - Parque Via Norte, Campinas - SP, 13065-030","x":"","o":"","p":true},{"t":"Casa","e":"R. Renato Ribeiro, 123 - Parque Via Norte, Campinas - SP, 13065-707","x":"Oficina","o":"","p":false}]},{"n":"LETICIA HARUMI","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Dr. Guilherme da Silva, 439 - Cambuí, Campinas - SP, 13025-070","x":"","o":"","p":true}]},{"n":"GEOVANA ARAUJO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Joaquim Novaes, 255 - Centro, Campinas - SP, 13015-140","x":"","o":"","p":true}]},{"n":"ANA JULIA MACHIAVELI","f":"19984470448","c":"Campinas","a":[{"t":"Casa","e":"Av. Pres. Juscelino, 2282 - Jardim Ipaussurama, Campinas - SP, 13060-524","x":"","o":"","p":true}]},{"n":"MAIRA MINCHIN","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151","x":"","o":"EMBRACON","p":true},{"t":"Casa","e":"R. Padre Almeida, 426 - Cambuí, Campinas - SP, 13025-251","x":"","o":"","p":false}]},{"n":"BIANCA POLIDORIO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Romeu Tortima, 452 - Jardim Santa Genebra II (Barao Geraldo), Campinas - SP, 13084-791","x":"","o":"","p":true}]},{"n":"LETICIA RODRIGUES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Imarés, 86 - Vila Costa e Silva, Campinas - SP, 13081-380","x":"","o":"","p":true}]},{"n":"MARIA ELIZANGELA","f":"19993021053","c":"Campinas","a":[{"t":"Casa","e":"Condomínio Machado de Assis, R. Olézio de Arruda Camargo, 216 - Dic IV (Conjunto Hab. Lech Walesa), Campinas - SP, 13054-442","x":"Bloco B - Apto 24","o":"","p":true}]},{"n":"IARA","f":"","c":"Paulínia","a":[{"t":"Casa","e":"R. Lourenço Ferrara, 783 - Parque Bom Retiro, Paulínia - SP, 13140-000","x":"","o":"","p":true}]},{"n":"CIBELLY","f":"","c":"Paulínia","a":[{"t":"Trabalho","e":"Av. dos Pioneiros, 430 - Santa Terezinha, Paulínia - SP, 13140-000","x":"MK Nakashima Beauty Salon","o":"","p":true}]},{"n":"VANDELA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"ANDREIA ZACARIAN","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Angicos, 125 - Vila Boa Vista, Campinas - SP, 13064-788","x":"","o":"","p":true}]},{"n":"BÁRBARA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Célso Luciano Fonseca, 16 - Dic III (Conjunto Hab. Ruy Novaes), Campinas - SP, 13054-232","x":"","o":"","p":true}]},{"n":"CARINE SIMÕES","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Barão de Itapura, 2999 - Jardim Nossa Sra. Auxiliadora, Campinas - SP, 13076-269","x":"","o":"","p":true}]},{"n":"STELLA SILVA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Joaquim Moura dos Santos, 196 - Parque Santo Antonio (Nova Veneza), Sumaré - SP, 13181-570","x":"","o":"","p":true}]},{"n":"STEFANIE CAROLINE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. José Bpo. Rodrigues, 258 - Vila Francisca, Campinas - SP","x":"","o":"","p":true}]},{"n":"DANIELA GONÇALVES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Edjer Alegreti, 33 - Parque Cidade Campinas, Campinas - SP, 13069-045","x":"","o":"","p":true}]},{"n":"ISADORA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Dr. Alberto Franco Lamunier, 1424 - Parque Via Norte, Campinas - SP, 13065-531","x":"Dismotor","o":"","p":true}]},{"n":"DETE","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Joaquim Moura dos Santos, 196 - Parque Santo Antonio (Nova Veneza), Sumaré - SP, 13181-570","x":"","o":"","p":true}]},{"n":"ELIZABETE BRITO","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Luiz Arten, 14 - Jardim Terras de Santo Antonio, Hortolândia - SP, 13185-541","x":"","o":"","p":true}]},{"n":"THALIA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Marrey Júnior, 535 - Jardim Novo Campos Eliseos, Campinas - SP, 13050-720","x":"","o":"","p":true}]},{"n":"Tayna Sousa","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Andrade Neves, 2181 - Centro, Campinas - SP, 13070-000","x":"","o":"","p":true}]},{"n":"JANAINA FETUCCIA","f":"19991321077","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED","o":"","p":true},{"t":"Outro","e":"R. Luís Chinaglia, 112 - Vila Carlito, Campinas - SP, 13043-080","x":"CASA MÃE","o":"","p":false},{"t":"Casa","e":"R. Albatroz, 65 - Vila Padre Manoel de Nobrega, Campinas - SP, 13061-371","x":"Bloco J1 - Apto 01","o":"","p":false}]},{"n":"THAYNA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Condomínio Edifício Maceió, R. Alcides Fonseca Júnior, 60 - Dic I (Conjunto Hab. Monsenhor Luiz Fernan, Campinas - SP, 13056-343","x":"APTO 21","o":"","p":true}]},{"n":"FERNANDA FERREIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Barão de Itapura, 950 - Vila Itapura, Campinas - SP, 13020-431","x":"SALA 34","o":"","p":true}]},{"n":"LETICIA MORENO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Cauim, 416 - Parque Universitario de Viracopos, Campinas - SP, 13056-50","x":"","o":"","p":true}]},{"n":"PRISCILLA SABRINA","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Unique Residence - Hortolândia, R. Antônio Fernandes Leite, 1390 - Jardim Santa Izabel, Hortolândia - SP, 13185-530","x":"APTO 403 - BLOCO 1","o":"","p":true}]},{"n":"LETICIA BELO ALVES","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Chácara da Barra, Campinas - SP, 13092-001","x":"","o":"","p":true}]},{"n":"KATIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Nicarágua, 685 - Jardim do Trevo, Campinas - SP, 13040-030","x":"","o":"","p":true}]},{"n":"THAINARA SASAKI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Domingos Stivalle, 540 - Parque Via Norte, Campinas - SP, 13065-051","x":"","o":"","p":true}]},{"n":"ISABELA DE GRECI","f":"","c":"Campinas","a":[{"t":"Casa","e":"Avenida Francisco José de Camargo Andrade, 655, Campinas, 13070-055, SP","x":"","o":"","p":true}]},{"n":"MARIA MARTINS","f":"","c":"","a":[{"t":"Casa","e":"Rua Noemia Alves dos Santos, 9","x":"","o":"","p":true}]},{"n":"CAMILA MARTINS FERRAZ","f":"19995080030","c":"Campinas","a":[{"t":"Casa","e":"R. Fernão Pompeu de Camargo, 1650 - Jardim do Trevo, Campinas - SP, 13040-010","x":"","o":"","p":true}]},{"n":"DANIELE CAROLINE SETE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Prof. Ary Monteiro Galvāo, 460 - Vila Madalena, Campinas - SP, 13091-010","x":"","o":"","p":true},{"t":"Trabalho","e":"Av. Carlos Grimaldi, 627 - Jardim Conceição, Campinas - SP, 13091-000","x":"A Concept Hair","o":"","p":false},{"t":"Casa","e":"R. Manoel dos Santos, 261 - Parque Rural Fazenda Santa Cândida, Campinas - SP, 13087-549","x":"","o":"","p":false}]},{"n":"KAROL ARGENTINO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Gen. Osório, 2101 - Centro, Campinas - SP, 13025-155","x":"","o":"","p":true}]},{"n":"PAULA","f":"","c":"","a":[{"t":"Casa","e":"Av. Papa João Paulo I, 432 - Bairro das Palmeiras","x":"","o":"","p":true}]},{"n":"TELMA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Bernardo José Sampaio, 138 - Botafogo, Campinas - SP, 13020-450","x":"","o":"","p":true}]},{"n":"MARIA EDUARDA VENANCIO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Padre Bernardo da Silva, 259 - São Bernardo, Campinas - SP, 13030-710","x":"","o":"","p":true},{"t":"Trabalho","e":"R. São Luís do Paraitinga, 182 - São Bernardo, Campinas - SP, 13030-105","x":"","o":"","p":false}]},{"n":"MAIANE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Nicarágua, 685 - Jardim do Trevo, Campinas - SP, 13040-030","x":"","o":"","p":true}]},{"n":"ACSA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"","o":"","p":true}]},{"n":"BRUNA CRISTINA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Ótica Saron, Av. Mal. Rondon, 1912 - Jardim Chapadão, Campinas - SP, 13070-172","x":"Ótica Saron","o":"","p":true}]},{"n":"GIOVANA BERTINI","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Nova Campinas","x":"","o":"","p":true}]},{"n":"NAYARA AZEVEDO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Governador Pedro de Toledo, 976 - Bonfim, Campinas - SP, 13070-740","x":"","o":"","p":true}]},{"n":"ANGELINA PANUCCI","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. do Lírio dos Vales, 210 - Jardim Conceição, Hortolândia - SP, 13185-775","x":"","o":"","p":true}]},{"n":"KAROLAYNE LISNA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Viscondessa de Campinas, 363 - Nova Campinas, Campinas - SP, 13092-135","x":"","o":"","p":true}]},{"n":"MICHELE SILVA","f":"19993809058","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Albino J. B. de Oliveira, 856 - Barão Geraldo, Campinas - SP, 13084-551","x":"","o":"","p":true},{"t":"Casa","e":"Res. Quilombo II - Techno Park, Campinas - SP, 13069-387","x":"","o":"","p":false}]},{"n":"IARA SOUZA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Benedicto Gomes Ferreira, 345 - Parque Via Norte, Campinas - SP, 13065-020","x":"","o":"","p":true},{"t":"Outro","e":"Av. John Boyd Dunlop, 6811 - Cidade Satélite Íris, Campinas - SP, 13059-587","x":"","o":"","p":false}]},{"n":"DANIELA ROLIM","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Galleria Shopping, Av. Bailarina Selma Parada, s/n - Jardim Nilópolis, Campinas - SP, 13091-901","x":"","o":"","p":true}]},{"n":"THAMIRES FREITAS","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Quatorze de Dezembro, 55 - Centro, Campinas - SP, 13015-130","x":"APTO 906.","o":"","p":true}]},{"n":"BEATRIZ MICAELA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Diogo Álvares, 2415 - Parque São Quirino, Campinas - SP, 13088-221","x":"","o":"","p":true}]},{"n":"LAIS TAVARES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Walter Cristiano Garlipp, 80 - Dic VI (Conjunto Hab. Santo Dias Silva), Campinas - SP, 13054-672","x":"","o":"","p":true}]},{"n":"MILENA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Manoel Thomáz, 40 - Jardim Regina, Campinas - SP, 13067-230","x":"","o":"","p":true}]},{"n":"VIVIAN VANEGAS","f":"19989148225","c":"Campinas","a":[{"t":"Casa","e":"R. Sebastião Rosa, 53 - São Bernardo, Campinas - SP, 13030-590","x":"","o":"","p":true}]},{"n":"LETICIA CORDEIRO DA SILVA","f":"19982836681","c":"Campinas","a":[{"t":"Casa","e":"R. José Custódio de Oliveira, 218 - Parque Jambeiro, Campinas - SP, 13042-470","x":"","o":"","p":true}]},{"n":"BRUNA ROHWEDDER","f":"","c":"","a":[{"t":"Casa","e":"R. Orlindo Marçal de Oliveira Vale, 39 - Jardim das Bandeiras","x":"BLOCO M, APTO 402","o":"","p":true}]},{"n":"MARIA EDUARDA MAGLIONI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Maj. Solon, 635 - Cambuí, Campinas - SP, 13024-091","x":"APTO 91","o":"","p":true}]},{"n":"MARIANA EDUARDA VEIGA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Fernão Pompeu de Camargo, 1437 - Jardim do Trevo, Campinas - SP, 13040-010","x":"","o":"CASA DAS ENGRENAGENS","p":true}]},{"n":"AGATA LIRA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"Av. Ipê Roxo, 610 - Parque Villa Flores, Sumaré - SP, 13175-658","x":"CASA 77","o":"Condomínio das Rosas/ Dentro do Condominio Vila Flora","p":true}]},{"n":"LETICIA BARRAVIEIRA","f":"19981336887","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Caio Pinto Guimarães - Campinas, SP","x":"PRÉDIO ANTIGA REITORIA S/N","o":"","p":true}]},{"n":"ANA CAROLINA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Alaor Malta Guimarães, 40 - Botafogo, Campinas - SP, 13020-081","x":"APTO 192","o":"","p":true}]},{"n":"KEYLA TATYELE","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Santo Agostinho, 550 - Jardim das Oliveiras (Nova Veneza), Sumaré - SP, 13180-200","x":"","o":"","p":true}]},{"n":"ELISE ROSA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Condomínio Allegro Residencial de Campinas, Av. Império do Sol Nascente, 581 - Jardim Aurelia, Campinas - SP, 13033-050","x":"TORRE B - APTO 123","o":"","p":true}]},{"n":"ALINE","f":"","c":"Campinas","a":[{"t":"Outro","e":"Av. Homero Vasconcelos de Souza Camargo, 271 - Jardim Ipaussurama, Campinas - SP, 13060-830","x":"","o":"","p":true}]},{"n":"GABRIELA FERNANDES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Eldorado, 950 - Lot. e Arruamento Telesp, Campinas - SP, 13052-470","x":"EMPRESA THERMO KLIMA","o":"","p":true}]},{"n":"MARIA EDUARDA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Luiz Libermann, 277 - Jardim Pauliceia, Campinas - SP, 13060-079","x":"","o":"","p":true}]},{"n":"ALINE BERTOLDO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Dr. Souza Ribeiro, 362 - Vila Satúrnia, Campinas - SP, 13031-095","x":"","o":"","p":true}]},{"n":"ANANDA VIEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Ângelo Simões, 964 - Jardim Leonor, Campinas - SP, 13041-150","x":"","o":"","p":true}]},{"n":"ELENITA","f":"19996155407","c":"Campinas","a":[{"t":"Casa","e":"Av. Washington Luíz, 814 - Jardim Leonor, Campinas - SP, 13041-005","x":"PORTA DE CANTO AO LADO DA FARMÁCIA","o":"Avisar que chegou pelo telefone, não interfonar.","p":true}]},{"n":"JENIFFER FERNANDES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. das Amoreiras, 3130 - Jardim do Lago, Campinas - SP, 13050-035","x":"ODONTOCLINIC","o":"","p":true}]},{"n":"THAMIRES CORREA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Dona Rosa de Gusmão, 670 - Jardim Chapadão, Campinas - SP, 13073-141","x":"","o":"","p":true}]},{"n":"NIDIANE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. John Boyd Dunlop, 131 - Vila Teixeira, Campinas - SP, 13032-377","x":"Loja 161 A - Manicure","o":"DENTRO DA BARBEARIA","p":true},{"t":"Outro","e":"Av. Dr. Carlos de Campos, 750 - Vila Industrial (Campinas), Campinas - SP, 13035-610","x":"","o":"","p":false}]},{"n":"MARIANA FREITAS","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Sebastião Teixeira, 44 - Res. Parque Pavan, Sumaré - SP, 13179-394","x":"","o":"","p":true}]},{"n":"ELZA PÁDUA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Frei Antônio de Pádua, 975 - Jardim Guanabara, Campinas - SP, 13073-330","x":"","o":"","p":true}]},{"n":"JULIA MELATO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Osvualte Darri, 28 - Villa Garden, Campinas - SP, 13031-392","x":"Apto 603, Torre 1.","o":"","p":true}]},{"n":"JULIA SAMPAIO","f":"19990133553","c":"Campinas","a":[{"t":"Casa","e":"R. Maria das Dores Cavalheiro Leme, 281 - Parque Jambeiro, Campinas - SP, 13042-620","x":"","o":"","p":true},{"t":"Outro","e":"R. Bibiano Claro Roman, 85 - Parque Jambeiro, Campinas - SP, 13042-290","x":"","o":"","p":false}]},{"n":"LARISSA LIMA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Dr. Albano de Almeida Lima, 489 - Jardim Guanabara, Campinas - SP, 13073-131","x":"Visage Estetica","o":"","p":true}]},{"n":"RAFAEL CORREIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Ruy Rodriguez, 1344 - Jardim Yeda, Campinas - SP, 13050-700","x":"","o":"","p":true}]},{"n":"GABI ROMÃO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Manoel Dias Pimenta, 338 - Jardim Carlos Lourenço, Campinas - SP, 13101-058","x":"Residencial Caiapó III","o":"Deixar na portaria.","p":true}]},{"n":"SAMILY","f":"","c":"Campinas","a":[{"t":"Casa","e":"Fast Escova Campinas - Mansões Santo Antônio, R. Jorge de Figueiredo Corrêa, 1120 - Parque Taquaral, Campinas - SP, 13087-261","x":"","o":"","p":true}]},{"n":"JULIANA STACHIN","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Manoel Mendonça, 76 - Jardim Campos Elíseos, Campinas - SP, 13060-253","x":"","o":"","p":true}]},{"n":"GABE ABRANTES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Benevenuto de Figueiredo Torres, 514 - Parque Santa Bárbara, Campinas - SP, 13064-160","x":"","o":"","p":true}]},{"n":"THATIANA CASTILHO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Arnaldo Barreto, 330 - São Bernardo, Campinas - SP, 13030-420","x":"APTO 28","o":"","p":false},{"t":"Casa","e":"Av. Niraide Moreira Ribeiro dos Santos, 17 - Jardim Dulce (Nova Veneza), Sumaré - SP, 13178-583","x":"CASA 79","o":"Condomínio Viva Vista Brisa","p":true}]},{"n":"GABI DELAVALENTINA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Áureo Laurindo da Silva, 415 - Jardim dos Ipes, Sumaré - SP, 13178-863","x":"","o":"","p":true}]},{"n":"JOYCE THALITA","f":"","c":"Campinas","a":[{"t":"Outro","e":"R. Reynaldo Bolliger, 355 - Jardim Santa Monica, Campinas - SP, 13082-090","x":"","o":"CASA DA VÓ","p":false},{"t":"Casa","e":"Av. Thereza Ana Cecon Breda, 1501 - Jardim das Colinas, Hortolândia - SP, 13183-255","x":"TORRE 02 - APTO 93","o":"","p":true}]},{"n":"IRIS MARIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Izidóro Caldatto, 46 - Parque Via Norte, Campinas - SP, 13065-590","x":"","o":"","p":true}]},{"n":"THAINA MARREIRO","f":"","c":"Campinas","a":[{"t":"Outro","e":"R. Dejair Menãs, 67 - Jardim Esplanada, Campinas - SP, 13056-224","x":"","o":"","p":true}]},{"n":"AMANDA MENDES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"unimed","o":"","p":true}]},{"n":"THALITA GOMES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Gen. Osório, 638 - Centro, Campinas - SP, 13010-110","x":"","o":"","p":true}]},{"n":"INGRID HERCOLINO","f":"","c":"Valinhos","a":[{"t":"Outro","e":"R. Nícola Anselmi, 197 - Estância Recreativa San Fernando, Valinhos - SP, 13278-112","x":"","o":"","p":true}]},{"n":"NATHALIA MICOLLI","f":"19991813636","c":"Campinas","a":[{"t":"Trabalho","e":"Av. José Bonifácio, 1909 - Jardim das Paineiras, Campinas - SP, 13092-305","x":"","o":"","p":true},{"t":"Casa","e":"Av. Engenheiro Augusto Figueiredo, 357 - Vila Progresso, Campinas - SP, 13045-603","x":"TORRE 4 - APTO 141","o":"","p":false}]},{"n":"RAFAELA BUENO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Dr. Souza Ribeiro, 362 - Vila Satúrnia, Campinas - SP, 13031-095","x":"APTO 3-301","o":"","p":true}]},{"n":"THAIS","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua São Miguel Arcanjo, 343 - Jardim Nova Europa, Campinas - SP, 13040-061","x":"","o":"","p":true}]},{"n":"ANGELA ANDRADE","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Condomínio Residencial Jardim do Jatobá, Av. Olívio Franceschini, 850 - Parque Ortolândia, Hortolândia - SP, 13184-160","x":"NUMERO 505 / Quadra N - 1","o":"","p":true}]},{"n":"ANDRESSA LIMA","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Antônio Francisco Lisboa, 1259 - Jardim Amanda I, Hortolândia - SP, 13188-001","x":"","o":"","p":true}]},{"n":"NATHALIA GERMANO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. José Galgano, 57 - Parque Via Norte, Campinas - SP, 13065-050","x":"","o":"","p":true}]},{"n":"ANDREZZA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Ângelo Simões, 964 - Jardim Leonor, Campinas - SP, 13041-150","x":"","o":"","p":true}]},{"n":"MARINA FURTADO","f":"19993870413","c":"Campinas","a":[{"t":"Outro","e":"R. José de Castro Mendes, 47 - Fundacao da Casa Popular, Campinas - SP, 13031-220","x":"","o":"","p":true},{"t":"Casa","e":"R. Albino Tessari, 114 - Parque dos Cisnes, Campinas - SP, 13046-255","x":"","o":"","p":false}]},{"n":"PAULA LOPES","f":"19971242553","c":"Campinas","a":[{"t":"Casa","e":"Rua Guapuruvu, 435 - Lot. Alphaville Campinas, Campinas - SP, 13098-322","x":"","o":"","p":true}]},{"n":"KATHELYN","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Quatro, 45, Hortolândia - SP, 13185-073","x":"","o":"","p":true},{"t":"Casa","e":"","x":"","o":"","p":false}]},{"n":"YANNA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Dr. Cândido Ferreira de Camargo, 57 - Cambuí, Campinas - SP, 13024-240","x":"","o":"","p":true}]},{"n":"LAURI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Camargo Pimentel, 26 - Jardim Guanabara, Campinas - SP, 13073-340","x":"","o":"","p":true}]},{"n":"BRUNA GABRIELA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Romeu Tortima, 452 - Jardim Santa Genebra II (Barao Geraldo), Campinas - SP, 13084-791","x":"EMPRESA ALS","o":"","p":true}]},{"n":"DANIELA AVANÇO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Jean Nassif Mokarzel, 107 - Cidade Universitária, Campinas - SP, 13084-070","x":"","o":"","p":true}]},{"n":"CAROLINA ANTUNES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. da Abolição, 3012 - Swift, Campinas - SP, 13045-560","x":"","o":"","p":true},{"t":"Outro","e":"R. Antônio Viêira dos Santos Sobrinho, 25 - Vila Joaquim Inacio, Campinas - SP, 13045-655","x":"","o":"","p":false}]},{"n":"GABI LOPES","f":"","c":"Campinas","a":[{"t":"Outro","e":"R. das Taiúvas, 213 - Parque Via Norte, Campinas - SP, 13064-784","x":"","o":"","p":true}]},{"n":"STEFANIE AIELO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Jasmim, 190 - Chácara Primavera, Campinas - SP, 13087-460","x":"APTO 63B","o":"","p":true}]},{"n":"NATHALIA FERREIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Ruth Paiva Zupi, 158 - Lot. Res. Novo Mundo, Campinas - SP, 13058-290","x":"","o":"","p":true}]},{"n":"ALEXANDRA FREITAS","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Tabelião Aguinaldo Xavier de Souza, 121 - Parque Prado, Campinas - SP, 13040-745","x":"T 01 - 1105","o":"","p":true}]},{"n":"JOCIELE SOUZA","f":"19988811990","c":"Campinas","a":[{"t":"Casa","e":"R. Murilo de Campos Castro, 84 - Fazenda Santa Cândida, Campinas - SP, 13092-599","x":"","o":"","p":true}]},{"n":"THAINA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Mix Shopping, R. das Acácias, 888 - Vila Boa Vista, Campinas - SP, 13064-797","x":"MARMITARIA","o":"","p":true}]},{"n":"MARCELA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151","x":"EMBRACON","o":"","p":true}]},{"n":"RODRIGO STANGER","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Frederico Alves da Costa, 801 - Jardim Nova Hortolandia, Hortolândia - SP, 13180-270","x":"Bloco 1 - AP 201.","o":"","p":true}]},{"n":"IRENE MACIEL","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Dr. Jeber Juabre, 145 - Jardim Marcia, Campinas - SP, 13060-611","x":"Condominio Park Contemporanium","o":"APTO 102 - Bloco C","p":true}]},{"n":"JULIA AMORIM","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Iguatú, 203 - Chácara Formosa, Campinas - SP, 13054-179","x":"","o":"","p":true}]},{"n":"RAQUEL SANTOS","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Flor de Laranjeira, 49 - Vila Nogueira, Campinas - SP","x":"","o":"","p":true}]},{"n":"SONIA RIBEIRO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Sta Maria Madalena Postel, 665 - Jardim Yeda, Campinas - SP, 13060-644","x":"","o":"","p":true}]},{"n":"GABRIELA DIAS","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. José Aparecido Mendes, 550 - Res. Flamboyant, Hortolândia - SP, 13187-215","x":"","o":"","p":true}]},{"n":"LOGGI","f":"","c":"Campinas","a":[{"t":"Outro","e":"Av. Brasil, 1282 - Jardim Chapadão, Campinas - SP, 13073-148","x":"","o":"","p":true}]},{"n":"IONARA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Eng. José Francisco Bento Homem de Mello, 605 - Res. Vista Verde, Campinas - SP, 13091-700","x":"APTO 1102 - TORRE 5.","o":"","p":true}]},{"n":"NATHALIA GOULARD","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Thomas Nilsen Júnior, 425 - Loteamento Alphaville, Campinas - SP, 13097-105","x":"Condomínio Dalia","o":"Casa 58.","p":true}]},{"n":"JULIA NONATO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. José Píres Neto, 314 - Cambuí, Campinas - SP, 13025-170","x":"","o":"","p":true}]},{"n":"JULIA MARTINS REGINATO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Santa Rita do Passa Quatro, 355 - Jardim Nova Europa, Campinas - SP, 13040-108","x":"BLOCO 5 - APTO 501.","o":"","p":true}]},{"n":"TALITA RAFAELA OLIVEIRA","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Confibra, 400 - Jardim Campos Verdes, Hortolândia - SP, 13186-070","x":"","o":"","p":true}]},{"n":"MIRIANE SANCHES","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Maria Emília A. dos Santos de Angelis, 520 - Parque Prado, Campinas - SP, 13044-163","x":"TORRE C - APTO 23","o":"","p":true}]},{"n":"REBECCA VASCONCELOS LIMA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Aipuás, 95 - Vila Costa e Silva, Campinas - SP, 13081-080","x":"","o":"","p":true}]},{"n":"DEBORA SANCHES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Salgueiros, 491 - Vila Boa Vista, Campinas - SP, 13064-741","x":"","o":"","p":true}]},{"n":"MILENA MARIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Janaquari, 400 - Vila Aeroporto I, Campinas - SP, 13054-108","x":"","o":"","p":true}]},{"n":"ALINE MELONARI","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Tiradentes, 289 - Vila Itapura, Campinas - SP, 13023-190","x":"SALA 73/74","o":"","p":true}]},{"n":"GLENIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Alice Lourdes Lançoni, 180 - Swiss Park, Campinas - SP, 13049-449","x":"Condomínio Geneve ","o":"","p":true}]},{"n":"ANA CHELLY","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"ADRIANA LONDON","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Mário Siqueira, 832 - Botafogo, Campinas - SP, 13020-210","x":"UNIMED","o":"","p":true}]},{"n":"KENIA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"MARCIA DE JESUS","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Wagram, 32 - Jardim Ouro Branco, Campinas - SP, 13100-485","x":"","o":"","p":true}]},{"n":"RAISSA SILVA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Bento José de Abreu, 16 - Vila Jequitibas, Campinas - SP, 13026-308","x":"","o":"","p":true}]},{"n":"THAIS FERREIRA","f":"19997370618","c":"Sumaré","a":[{"t":"Casa","e":"R. Francisco Manoel de Souza, 272 - Chácara Bela Vista, Sumaré - SP, 13177-403","x":"Andar - A 122","o":"","p":true}]},{"n":"MONICA CARPEJANI","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Manoel Bandeira, 825 - Jardim Amanda II, Hortolândia - SP, 13188-181","x":"","o":"","p":true}]},{"n":"BEATRIZ MACIELA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Álvaro Muller, 130 - Vila Itapura, Campinas - SP, 13023-180","x":"APTO 62","o":"","p":true}]},{"n":"FLAVIA SAVI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Pedro Gianfrancisco, 60 - Parque Via Norte, Campinas - SP, 13065-195","x":"","o":"","p":true}]},{"n":"ANA PAULA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. das Acácias, 888 - Vila Boa Vista, Campinas - SP, 13064-797","x":"LOJA BELA KIDS","o":"","p":true}]},{"n":"ALINE MONTEIRO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. João Scarparo Netto, 230 - Lot. Center Santa Genebra, Campinas - SP, 13080-655","x":"Loteamento Center Santa Genebra","o":"Principes 213","p":true}]},{"n":"GISLAINE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Henrique Oswald, 20 - Chácara Primavera, Campinas - SP, 13087-393","x":"","o":"","p":true}]},{"n":"NAYLA FERNANDA DE SOUZA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Vânia Aparecida Dias, 299 - Jardim do Lago II, Campinas - SP, 13051-029","x":"TORRE 4 - APTO 65","o":"CONDOMINIO VARANDAS","p":true}]},{"n":"GABRIELA LOPES","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Av. Pau Brasil, 335 - Jardim Conceição, Hortolândia - SP, 13185-795","x":"","o":"","p":true}]},{"n":"LARISSA GEORGETO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Aristídes Xavier de Brito, 290 - Vila Georgina, Campinas - SP, 13043-810","x":"","o":"","p":true}]},{"n":"FLAVIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Lotário Novaes, 244 - Taquaral, Campinas - SP, 13076-150","x":"APTO 61 - TORRE 1","o":"","p":true}]},{"n":"DEBORA PIRAJIBE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. João da Cruz e Souza, 76 - Jardim Chapadão, Campinas - SP, 13070-116","x":"","o":"","p":true}]},{"n":"AMANDA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Pedro Alexandrino, 207 - Vila Joao Jorge, Campinas - SP, 13041-314","x":"","o":"","p":true}]},{"n":"ANA BEATRIZ","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Cacique Piquerobi, 149 - Vila Ipê, Campinas - SP, 13044-300","x":"CASA 02","o":"","p":true}]},{"n":"BRUNA SOARES","f":"19981210359","c":"Paulínia","a":[{"t":"Casa","e":"Av. Izabel de Freitas Pereira Caron, 386 - Jardim Ypê, Paulínia - SP, 13140-000","x":"","o":"","p":true}]},{"n":"CAMILA SERAFIM","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Presbítero Sigmundo Simberg, 55 - Parque das Constelações, Campinas - SP, 13067-790","x":"BLOCO 5 - APTO 205","o":"","p":true}]}];
-let CLIENTS = [];
-let orders = [];
-let selected = null;
-let selectedModes = new Set();
-let selectedTW = { type:'none', time:null };
-let avTW = { type:'none', time:null };
-const syncDot = document.getElementById('syncDot');
-const syncText = document.getElementById('syncText');
+renderShell({ active: 'dashboard', title: 'Dashboard', subtitle: 'Visão geral das entregas e rotas' });
 
-// Config do Firebase, chave do Google Maps, autenticação e helpers de
-// leitura/escrita ficam em assets/shared.js (compartilhado com
-// planejamento.html) — carregado antes deste script.
-
-function setSync(state){
-  // state: 'live' | 'local' | 'syncing'
-  if(state === 'live'){ syncDot.style.background = 'var(--sage)'; syncText.textContent = 'sincronizado agora'; }
-  else if(state === 'syncing'){ syncDot.style.background = 'var(--gold)'; syncText.textContent = 'sincronizando...'; }
-  else { syncDot.style.background = 'var(--muted)'; syncText.textContent = LIVE ? 'sem conexão' : 'modo local (configure o Firebase)'; }
-}
-
-async function loadClients(){
-  if(!LIVE){ CLIENTS = DEFAULT_CLIENTS; return; }
-  try {
-    const doc = await db.collection(COL).doc('clients-db').get();
-    if(doc.exists){ CLIENTS = doc.data().value; }
-    else {
-      CLIENTS = DEFAULT_CLIENTS;
-      await db.collection(COL).doc('clients-db').set({ value: CLIENTS, updatedAt: Date.now() });
-    }
-  } catch(e){ CLIENTS = DEFAULT_CLIENTS; }
-}
-async function saveClients(){
-  document.getElementById('clientCount').textContent = CLIENTS.length + ' clientes carregadas';
-  if(!LIVE) return;
-  try { await db.collection(COL).doc('clients-db').set({ value: CLIENTS, updatedAt: Date.now() }); setSync('live'); }
-  catch(e){ setSync('local'); }
-}
-
-async function loadOrders(){
-  if(!LIVE){ orders = []; return; }
-  try {
-    const doc = await db.collection(COL).doc(todayKey()).get();
-    orders = doc.exists ? doc.data().value : [];
-  } catch(e){ orders = []; }
-}
-async function saveOrders(){
-  if(!LIVE){ setSync('local'); return; }
-  try { await db.collection(COL).doc(todayKey()).set({ value: orders, updatedAt: Date.now() }); setSync('live'); }
-  catch(e){ setSync('local'); }
-}
-
-function attachLiveListeners(){
-  if(!LIVE) return;
-  db.collection(COL).doc(todayKey()).onSnapshot(doc => {
-    if(!doc.exists) return;
-    const fresh = doc.data().value || [];
-    if(JSON.stringify(fresh) !== JSON.stringify(orders)){ orders = fresh; renderOrders(); }
-    setSync('live');
-  }, () => setSync('local'));
-
-  db.collection(COL).doc('clients-db').onSnapshot(doc => {
-    if(!doc.exists) return;
-    const fresh = doc.data().value || [];
-    if(JSON.stringify(fresh) !== JSON.stringify(CLIENTS)){
-      CLIENTS = fresh;
-      document.getElementById('clientCount').textContent = CLIENTS.length + ' clientes carregadas';
-    }
-  }, () => {});
+function fmtDuration(totalMin){
+  const h = Math.floor(totalMin/60); const m = Math.round(totalMin%60);
+  if(h<=0) return m + 'min';
+  return h + 'h' + String(m).padStart(2,'0');
 }
 
 async function init(){
-  setSync('syncing');
   await ensureAuth();
-  await loadClients();
-  document.getElementById('clientCount').textContent = CLIENTS.length + ' clientes carregadas' + (LIVE ? '' : ' · configure o Firebase pra sincronizar');
-  await loadOrders();
-  renderOrders();
-  setSync(LIVE ? 'live' : 'local');
-  attachLiveListeners();
-}
-document.getElementById('refreshBtn').addEventListener('click', async () => {
-  setSync('syncing');
-  await loadOrders();
-  await loadClients();
-  renderOrders();
-  setSync(LIVE ? 'live' : 'local');
-});
-init();
+  const today = dateSuffix();
+  const routes = await loadRoutesForDate(today);
 
-
-const searchInput = document.getElementById('searchInput');
-const resultsEl = document.getElementById('results');
-const selectedClientEl = document.getElementById('selectedClient');
-const scName = document.getElementById('scName');
-const scCity = document.getElementById('scCity');
-const addrList = document.getElementById('addrList');
-const addBtn = document.getElementById('addBtn');
-const obsInput = document.getElementById('obsInput');
-const ordersListEl = document.getElementById('ordersList');
-const ordersTotal = document.getElementById('ordersTotal');
-const toast = document.getElementById('toast');
-const routeLink = document.getElementById('routeLink');
-const organizeBtn = document.getElementById('organizeBtn');
-const finalizeBtn = document.getElementById('finalizeBtn');
-
-function norm(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
-function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
-
-// ---------- BUSCA ----------
-searchInput.addEventListener('input', () => {
-  const q = norm(searchInput.value.trim());
-  if(!q){ resultsEl.classList.remove('open'); return; }
-  const matches = CLIENTS.filter(c => norm(c.n).includes(q)).slice(0, 8);
-  resultsEl.innerHTML = matches.length === 0
-    ? '<div class="result-empty">Nenhuma cliente encontrada. Use "+ nova cliente" pra cadastrar.</div>'
-    : matches.map(c => `<div class="result-item" data-idx="${CLIENTS.indexOf(c)}"><span class="rname">${c.n}</span><span class="rcity">${c.c || '—'}</span></div>`).join('');
-  resultsEl.classList.add('open');
-});
-resultsEl.addEventListener('click', (e) => {
-  const item = e.target.closest('.result-item');
-  if(!item || !item.dataset.idx) return;
-  selectClient(CLIENTS[parseInt(item.dataset.idx)]);
-});
-document.addEventListener('click', (e) => { if(!e.target.closest('.search-box')) resultsEl.classList.remove('open'); });
-
-function selectClient(client){
-  selected = { client, addrIndex: null };
-  selectedModes = new Set();
-  searchInput.value = client.n;
-  resultsEl.classList.remove('open');
-  scName.textContent = client.n;
-  scCity.textContent = client.c || '—';
-  selectedClientEl.classList.add('show');
-  renderAddrList();
-  const principalIdx = client.a.findIndex(a => a.p);
-  if(client.a.length === 1) chooseAddress(0);
-  else if(principalIdx >= 0) chooseAddress(principalIdx);
-  document.querySelectorAll('.pill-toggle').forEach(b => b.classList.remove('active'));
-  obsInput.value = '';
-  selectedTW = { type:'none', time:null };
-  resetTimeWindowPicker('twPills', 'twTimeBox', 'twTimeInput');
-  document.getElementById('newAddrForm').classList.remove('open');
-  document.getElementById('editClientForm').classList.remove('open');
-  updateAddBtn();
-}
-
-function renderAddrList(){
-  addrList.innerHTML = selected.client.a.map((addr, i) => `
-    <div class="addr-card ${selected.addrIndex===i ? 'selected':''}" data-idx="${i}">
-      <div class="addr-top"><span class="type-badge">${addr.t || 'Endereço'}</span>${addr.p ? '<span class="principal-star">★ principal</span>' : ''}</div>
-      <div class="addr-text">${addr.e}</div>
-      ${addr.x ? `<div class="addr-extra">${addr.x}</div>` : ''}
-      ${addr.o ? `<div class="addr-extra">Obs: ${addr.o}</div>` : ''}
-    </div>`).join('');
-}
-addrList.addEventListener('click', (e) => {
-  const card = e.target.closest('.addr-card');
-  if(!card) return;
-  chooseAddress(parseInt(card.dataset.idx));
-});
-function chooseAddress(idx){
-  selected.addrIndex = idx;
-  document.querySelectorAll('.addr-card').forEach(c => c.classList.toggle('selected', parseInt(c.dataset.idx)===idx));
-  updateAddBtn();
-}
-
-document.querySelectorAll('.pill-toggle').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const mode = btn.dataset.mode;
-    if(selectedModes.has(mode)){ selectedModes.delete(mode); btn.classList.remove('active'); }
-    else { selectedModes.add(mode); btn.classList.add('active'); }
-    if(mode === 'CORREIO'){
-      document.getElementById('correioQty').style.display = selectedModes.has('CORREIO') ? 'block' : 'none';
-    }
-    updateAddBtn();
-  });
-});
-
-function updateAddBtn(){ addBtn.disabled = !(selected && selected.addrIndex !== null && selectedModes.size > 0); }
-
-// ---------- HORÁRIO DA ENTREGA (Sem horário / Antes de / Depois de) ----------
-function setupTimeWindowPicker(pillGroupId, timeBoxId, timeInputId, onChange){
-  const group = document.getElementById(pillGroupId);
-  const box = document.getElementById(timeBoxId);
-  const input = document.getElementById(timeInputId);
-  group.querySelectorAll('.tw-pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      group.querySelectorAll('.tw-pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const type = btn.dataset.tw;
-      box.style.display = (type === 'none') ? 'none' : 'block';
-      onChange({ type, time: type === 'none' ? null : (input.value || null) });
-    });
-  });
-  input.addEventListener('input', () => {
-    const active = group.querySelector('.tw-pill.active');
-    const type = active ? active.dataset.tw : 'none';
-    onChange({ type, time: input.value || null });
-  });
-}
-function resetTimeWindowPicker(pillGroupId, timeBoxId, timeInputId){
-  document.getElementById(pillGroupId).querySelectorAll('.tw-pill').forEach(b => b.classList.toggle('active', b.dataset.tw === 'none'));
-  document.getElementById(timeBoxId).style.display = 'none';
-  document.getElementById(timeInputId).value = '';
-}
-setupTimeWindowPicker('twPills', 'twTimeBox', 'twTimeInput', (tw) => { selectedTW = tw; });
-setupTimeWindowPicker('avTwPills', 'avTwTimeBox', 'avTwTimeInput', (tw) => { avTW = tw; });
-
-addBtn.addEventListener('click', () => {
-  const addr = selected.client.a[selected.addrIndex];
-  const modesFinal = Array.from(selectedModes).map(m => {
-    if(m === 'CORREIO'){
-      const qty = document.getElementById('correioQtyInput').value.trim();
-      return qty ? `CORREIO - ${qty} PACOTES` : 'CORREIO';
-    }
-    return m;
-  });
-  orders.push({
-    kind: 'cliente', name: selected.client.n, phone: selected.client.f, city: selected.client.c,
-    address: addr.e, complement: addr.x, ref: addr.o,
-    modes: modesFinal, obs: obsInput.value.trim(), timeWindow: selectedTW
-  });
-  renderOrders();
-  saveOrders();
-  showToast('Adicionado à rota de hoje');
-  selected = null; selectedModes = new Set();
-  selectedTW = { type:'none', time:null };
-  resetTimeWindowPicker('twPills', 'twTimeBox', 'twTimeInput');
-  searchInput.value = '';
-  selectedClientEl.classList.remove('show');
-  document.getElementById('correioQty').style.display = 'none';
-  document.getElementById('correioQtyInput').value = '';
-  searchInput.focus();
-});
-
-// ---------- NOVA CLIENTE ----------
-const newClientForm = document.getElementById('newClientForm');
-document.getElementById('toggleNewClient').addEventListener('click', () => {
-  newClientForm.classList.toggle('open');
-  selectedClientEl.classList.remove('show');
-});
-document.getElementById('ncCancel').addEventListener('click', () => newClientForm.classList.remove('open'));
-document.getElementById('ncSave').addEventListener('click', () => {
-  const name = document.getElementById('ncName').value.trim();
-  const address = document.getElementById('ncAddress').value.trim();
-  if(!name || !address){ showToast('Preencha ao menos nome e endereço'); return; }
-  const newClient = {
-    n: name.toUpperCase(),
-    f: document.getElementById('ncPhone').value.trim(),
-    c: document.getElementById('ncCity').value.trim(),
-    a: [{ t: document.getElementById('ncType').value, e: address, x: document.getElementById('ncComplement').value.trim(), o: document.getElementById('ncObs').value.trim(), p: true }]
-  };
-  CLIENTS.unshift(newClient);
-  saveClients();
-  ['ncName','ncCity','ncPhone','ncAddress','ncComplement','ncObs'].forEach(id => document.getElementById(id).value = '');
-  newClientForm.classList.remove('open');
-  showToast('Cliente cadastrada!');
-  selectClient(newClient);
-});
-
-// ---------- NOVO ENDEREÇO ----------
-const newAddrForm = document.getElementById('newAddrForm');
-document.getElementById('toggleNewAddr').addEventListener('click', () => newAddrForm.classList.toggle('open'));
-document.getElementById('naCancel').addEventListener('click', () => newAddrForm.classList.remove('open'));
-document.getElementById('naSave').addEventListener('click', () => {
-  const address = document.getElementById('naAddress').value.trim();
-  if(!address){ showToast('Preencha o endereço'); return; }
-  const isPrincipal = document.getElementById('naPrincipal').checked;
-  if(isPrincipal) selected.client.a.forEach(a => a.p = false);
-  selected.client.a.push({
-    t: document.getElementById('naType').value, e: address,
-    x: document.getElementById('naComplement').value.trim(), o: document.getElementById('naObs').value.trim(),
-    p: isPrincipal
-  });
-  ['naAddress','naComplement','naObs'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('naPrincipal').checked = false;
-  newAddrForm.classList.remove('open');
-  renderAddrList();
-  chooseAddress(selected.client.a.length - 1);
-  saveClients();
-  showToast('Endereço adicionado');
-});
-
-// ---------- EDITAR CADASTRO ----------
-let ecBlockCounter = 0;
-function escapeAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-function createEcBlock(addr){
-  const id = 'ec' + (ecBlockCounter++);
-  const div = document.createElement('div');
-  div.className = 'addr-block';
-  div.dataset.blockId = id;
-  div.innerHTML = `
-    <div class="addr-block-head"><span>Endereço</span><button type="button" class="small-x" data-remove="${id}">✕</button></div>
-    <div class="two-col" style="margin-top:8px;">
-      <select class="ec-type">
-        <option ${addr.t==='Casa'?'selected':''}>Casa</option>
-        <option ${addr.t==='Trabalho'?'selected':''}>Trabalho</option>
-        <option ${addr.t==='Outro'?'selected':''}>Outro</option>
-      </select>
-      <label class="check-row" style="margin:0;"><input type="radio" name="ecPrincipal" class="ec-principal" value="${id}" ${addr.p?'checked':''}> Principal</label>
-    </div>
-    <input type="text" class="ec-address" value="${escapeAttr(addr.e)}" placeholder="Endereço completo" style="margin-top:8px;">
-    <div class="two-col" style="margin-top:8px;">
-      <input type="text" class="ec-complement" value="${escapeAttr(addr.x)}" placeholder="Complemento">
-      <input type="text" class="ec-obs" value="${escapeAttr(addr.o)}" placeholder="Referência/obs">
-    </div>`;
-  return div;
-}
-function openEditClient(){
-  document.getElementById('ecName').value = selected.client.n;
-  document.getElementById('ecCity').value = selected.client.c;
-  document.getElementById('ecPhone').value = selected.client.f;
-  const container = document.getElementById('ecAddrBlocks');
-  container.innerHTML = '';
-  ecBlockCounter = 0;
-  selected.client.a.forEach(addr => container.appendChild(createEcBlock(addr)));
-  document.getElementById('editClientForm').classList.add('open');
-  newAddrForm.classList.remove('open');
-}
-document.getElementById('toggleEditClient').addEventListener('click', () => {
-  const f = document.getElementById('editClientForm');
-  if(f.classList.contains('open')) f.classList.remove('open');
-  else openEditClient();
-});
-document.getElementById('ecCancel').addEventListener('click', () => document.getElementById('editClientForm').classList.remove('open'));
-document.getElementById('ecAddAddr').addEventListener('click', () => {
-  document.getElementById('ecAddrBlocks').appendChild(createEcBlock({t:'Casa',e:'',x:'',o:'',p:false}));
-});
-document.getElementById('ecAddrBlocks').addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-remove]');
-  if(!btn) return;
-  const blocks = document.querySelectorAll('#ecAddrBlocks .addr-block');
-  if(blocks.length <= 1){ showToast('A cliente precisa ter ao menos 1 endereço'); return; }
-  btn.closest('.addr-block').remove();
-});
-document.getElementById('ecSave').addEventListener('click', () => {
-  const name = document.getElementById('ecName').value.trim();
-  if(!name){ showToast('Nome não pode ficar vazio'); return; }
-  const blocks = document.querySelectorAll('#ecAddrBlocks .addr-block');
-  const newAddrs = [];
-  blocks.forEach(b => {
-    const address = b.querySelector('.ec-address').value.trim();
-    if(!address) return;
-    newAddrs.push({
-      t: b.querySelector('.ec-type').value,
-      e: address,
-      x: b.querySelector('.ec-complement').value.trim(),
-      o: b.querySelector('.ec-obs').value.trim(),
-      p: b.querySelector('.ec-principal').checked
-    });
-  });
-  if(newAddrs.length === 0){ showToast('Precisa ter ao menos 1 endereço válido'); return; }
-  if(!newAddrs.some(a => a.p)) newAddrs[0].p = true;
-  selected.client.n = name.toUpperCase();
-  selected.client.c = document.getElementById('ecCity').value.trim();
-  selected.client.f = document.getElementById('ecPhone').value.trim();
-  selected.client.a = newAddrs;
-  scName.textContent = selected.client.n;
-  scCity.textContent = selected.client.c || '—';
-  selected.addrIndex = null;
-  renderAddrList();
-  updateAddBtn();
-  document.getElementById('editClientForm').classList.remove('open');
-  saveClients();
-  showToast('Cadastro atualizado');
-});
-
-// ---------- PARADA AVULSA ----------
-document.getElementById('avAdd').addEventListener('click', () => {
-  const name = document.getElementById('avName').value.trim();
-  const address = document.getElementById('avAddress').value.trim();
-  if(!name || !address){ showToast('Preencha nome e endereço da parada'); return; }
-  orders.push({ kind:'avulsa', name, address, obs: document.getElementById('avObs').value.trim(), timeWindow: avTW });
-  ['avName','avAddress','avObs'].forEach(id => document.getElementById(id).value = '');
-  avTW = { type:'none', time:null };
-  resetTimeWindowPicker('avTwPills', 'avTwTimeBox', 'avTwTimeInput');
-  renderOrders();
-  saveOrders();
-  showToast('Parada adicionada');
-});
-
-// ---------- MODOS DE ATENDIMENTO ----------
-// MODES e hasMode ficam em assets/shared.js (compartilhado com a página
-// de Planejamento). extractCorreioQty é usado só aqui.
-function extractCorreioQty(modes){
-  const m = (modes||[]).find(x => x.startsWith('CORREIO'));
-  if(!m) return '';
-  const match = m.match(/CORREIO - (\d+)/);
-  return match ? match[1] : '';
-}
-
-// ---------- LISTA / TICKETS ----------
-let editingIndex = null;
-
-function ensureOrderIds(){
-  let changed = false;
-  orders.forEach(o => { if(!o._id){ o._id = 'o' + Date.now() + Math.random().toString(36).slice(2,8); changed = true; } });
-  return changed;
-}
-
-function renderOrders(){
-  if(ensureOrderIds()) saveOrders();
-  ordersTotal.textContent = orders.length;
-  if(orders.length === 0){
-    ordersListEl.innerHTML = '<div class="empty-state">Nenhuma parada adicionada ainda.</div>';
-    routeLink.style.display = 'none';
-    organizeBtn.style.display = 'none';
-    finalizeBtn.style.display = 'none';
-    return;
+  let pedidos=0, entregues=0, pendentes=0, km=0;
+  for(const r of routes){
+    const s = summarizeRoute(r);
+    pedidos += s.paradas;
+    km += s.km;
+    pendentes += (r.orders||[]).slice(1,-1).filter(o => (o.status||'pendente')==='pendente').length;
+    entregues += (r.orders||[]).slice(1,-1).filter(o => o.status==='entregue').length;
   }
-  ordersListEl.innerHTML = orders.map((o, i) => {
-    if(i === editingIndex) return renderEditTicket(o, i);
-    const twLabel = timeWindowLabel(o.timeWindow);
-    if(o.kind === 'avulsa'){
-      return `<div class="ticket avulsa" data-order-id="${o._id}">
-        <span class="drag-handle">⠿</span>
-        <div class="num">${i+1}</div><div class="body">
-        <div class="tname">${o.name}</div><div class="taddr">${o.address}</div>
-        ${twLabel ? `<div class="tmeta"><span class="pill">${twLabel}</span></div>` : ''}
-        ${o.obs ? `<div class="tobs">${o.obs}</div>` : ''}
-        </div><div class="actions">
-          <button class="mini-btn" onclick="openEditOrder(${i})" title="Editar">✎</button>
-          <button class="mini-btn" onclick="moveOrder(${i},-1)" title="Subir">↑</button>
-          <button class="mini-btn" onclick="moveOrder(${i},1)" title="Descer">↓</button>
-          <button class="mini-btn" onclick="removeOrder(${i})" title="Remover">✕</button>
-        </div></div>`;
-    }
-    return `<div class="ticket" data-order-id="${o._id}">
-      <span class="drag-handle">⠿</span>
-      <div class="num">${i+1}</div><div class="body">
-      <div class="tname">${o.name}</div>
-      <div class="taddr">${o.address}${o.complement ? ' · ' + o.complement : ''}</div>
-      <div class="tmeta">${o.modes.map(m => `<span class="pill">${m}</span>`).join('')}${twLabel ? `<span class="pill">${twLabel}</span>` : ''}</div>
-      ${o.obs ? `<div class="tobs">${o.obs}</div>` : ''}
-      </div><div class="actions">
-        <button class="mini-btn" onclick="openEditOrder(${i})" title="Editar">✎</button>
-        <button class="mini-btn" onclick="moveOrder(${i},-1)" title="Subir">↑</button>
-        <button class="mini-btn" onclick="moveOrder(${i},1)" title="Descer">↓</button>
-        <button class="mini-btn" onclick="removeOrder(${i})" title="Remover">✕</button>
-      </div></div>`;
+  const liveOrders = await loadDoc(todayKey(), []);
+  if(liveOrders.length > 2){
+    pedidos += liveOrders.length - 2;
+    pendentes += liveOrders.slice(1,-1).filter(o => (o.status||'pendente')==='pendente').length;
+  }
+  document.getElementById('kpiPedidos').textContent = pedidos;
+  document.getElementById('kpiEntregues').textContent = entregues;
+  document.getElementById('kpiPendentes').textContent = pendentes;
+  document.getElementById('kpiKm').textContent = km.toFixed(1).replace('.',',') + ' km';
+
+  // rota do dia (ativa ou rascunho atual)
+  const activeRoute = routes.find(r => r.status === 'em_andamento');
+  const rotaBody = document.getElementById('rotaAtualBody');
+  if(activeRoute || liveOrders.length > 0){
+    const cfg = await loadDoc(configKey(), null);
+    rotaBody.innerHTML = `
+      <span class="tag tag-progress">Em andamento</span>
+      <p class="note" style="margin-top:10px;">${cfg && cfg.saida ? 'Saída: ' + cfg.saida : 'Horário de saída não configurado'}</p>
+      <a href="rota-do-dia.html" class="btn btn-primary" style="width:100%;margin-top:10px;">Ver rota</a>`;
+  } else if(routes.length > 0){
+    rotaBody.innerHTML = `<span class="tag tag-done">Nenhuma rota em andamento</span>
+      <p class="note" style="margin-top:10px;">${routes.length} rota(s) finalizada(s) hoje.</p>
+      <a href="rota-do-dia.html" class="btn btn-outline" style="width:100%;margin-top:10px;">Ir pra Rota do Dia</a>`;
+  } else {
+    rotaBody.innerHTML = `<p class="note">Nenhum pedido adicionado ainda hoje.</p>
+      <a href="pedido-rapido.html" class="btn btn-primary" style="width:100%;margin-top:10px;">Adicionar pedido</a>`;
+  }
+
+  // resumo semanal (últimos 7 dias)
+  const end = today;
+  const startDate = new Date(today + 'T00:00:00'); startDate.setDate(startDate.getDate() - 6);
+  const start = startDate.toISOString().slice(0,10);
+  const weekRoutes = await loadRoutesInRange(start, end);
+  const byDay = {};
+  for(const d of dateRangeArray(start, end)) byDay[d] = { entregas: 0, km: 0 };
+  for(const r of weekRoutes){
+    const s = summarizeRoute(r);
+    if(byDay[r.date]){ byDay[r.date].entregas += s.entregas; byDay[r.date].km += s.km; }
+  }
+  const maxVal = Math.max(1, ...Object.values(byDay).map(v => v.entregas));
+  const dowLabels = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  document.getElementById('weekChart').innerHTML = Object.entries(byDay).map(([d,v]) => {
+    const dow = dowLabels[new Date(d + 'T00:00:00').getDay()];
+    const h = Math.max(2, Math.round((v.entregas / maxVal) * 100));
+    return `<div class="bar-col"><div class="bar" style="height:${h}%;" title="${v.entregas} entregas · ${v.km.toFixed(1)}km"></div><div class="bar-day">${dow}</div></div>`;
   }).join('');
 
-  const url = 'https://www.google.com/maps/dir/' + orders.map(o => encodeURIComponent(o.address)).join('/');
-  routeLink.href = url;
-  routeLink.style.display = 'block';
-  organizeBtn.style.display = 'block';
-  finalizeBtn.style.display = 'block';
-  attachDragHandlers();
-}
-
-function renderTwEditBlock(i, tw){
-  tw = tw || { type:'none', time:null };
-  return `<label class="f-label">Horário da entrega</label>
-    <div class="edit-pill-group" id="editTwPills-${i}">
-      <button type="button" class="tw-pill ${tw.type==='none'?'active':''}" data-tw="none">Sem horário</button>
-      <button type="button" class="tw-pill ${tw.type==='before'?'active':''}" data-tw="before">Antes de</button>
-      <button type="button" class="tw-pill ${tw.type==='after'?'active':''}" data-tw="after">Depois de</button>
-    </div>
-    <div id="editTwTimeBox-${i}" style="display:${tw.type==='none'?'none':'block'};margin-top:8px;">
-      <input type="time" id="editTwTimeInput-${i}" value="${tw.time||''}" style="max-width:140px;">
-    </div>`;
-}
-
-function renderEditTicket(o, i){
-  if(o.kind === 'avulsa'){
-    return `<div class="ticket avulsa" data-order-id="${o._id}"><div class="edit-form">
-      <label class="f-label" style="margin-top:0;">Nome da parada</label>
-      <input type="text" id="editName">
-      <label class="f-label">Endereço</label>
-      <input type="text" id="editAddress">
-      ${renderTwEditBlock(i, o.timeWindow)}
-      <label class="f-label">Observação</label>
-      <textarea id="editObs"></textarea>
-      <div class="edit-actions">
-        <button class="save-btn" onclick="saveEditOrder(${i})">Salvar</button>
-        <button onclick="cancelEditOrder()">Cancelar</button>
-      </div>
-    </div></div>`;
-  }
-  const client = CLIENTS.find(c => c.n === o.name);
-  const correioQty = extractCorreioQty(o.modes);
-  let addrFieldHtml;
-  if(client){
-    addrFieldHtml = `<select id="editAddrSelect">
-      ${client.a.map(a => `<option value="${encodeURIComponent(a.e)}||${encodeURIComponent(a.x||'')}" ${a.e===o.address ? 'selected':''}>${a.t || 'Endereço'} — ${a.e}</option>`).join('')}
-    </select>`;
+  // última rota finalizada
+  const finalizedRoutes = weekRoutes.filter(r => r.status === 'finalizada').sort((a,b) => (b.finalizedAt||0) - (a.finalizedAt||0));
+  const last = finalizedRoutes[0];
+  const lastBody = document.getElementById('lastRouteBody');
+  if(!last){
+    lastBody.innerHTML = '<p class="note">Nenhuma rota finalizada ainda.</p>';
   } else {
-    addrFieldHtml = `<input type="text" id="editAddressManual" value="${(o.address||'').replace(/"/g,'&quot;')}">`;
-  }
-  return `<div class="ticket" data-order-id="${o._id}"><div class="edit-form">
-    <div class="tname">${o.name}</div>
-    <label class="f-label">Endereço</label>
-    ${addrFieldHtml}
-    <label class="f-label">Tipo de atendimento</label>
-    <div class="edit-pill-group" id="editModalPills-${i}">
-      ${MODES.map(m => `<button type="button" class="edit-pill ${hasMode(o.modes,m.key)?'active':''}" data-mode="${m.key}">${m.label}</button>`).join('')}
-    </div>
-    <div id="editCorreioQtyBox-${i}" style="display:${hasMode(o.modes,'CORREIO')?'block':'none'};margin-top:8px;">
-      <label class="f-label" style="margin:0 0 5px;">Quantos pacotes?</label>
-      <input type="number" id="editCorreioQtyInput-${i}" min="1" value="${correioQty}" style="max-width:120px;">
-    </div>
-    ${renderTwEditBlock(i, o.timeWindow)}
-    <label class="f-label">Observação</label>
-    <textarea id="editObs">${o.obs || ''}</textarea>
-    <div class="edit-actions">
-      <button class="save-btn" onclick="saveEditOrder(${i})">Salvar</button>
-      <button onclick="cancelEditOrder()">Cancelar</button>
-    </div>
-  </div></div>`;
-}
-
-document.getElementById('ordersList').addEventListener('click', (e) => {
-  const pill = e.target.closest('.edit-pill');
-  if(pill){
-    pill.classList.toggle('active');
-    if(pill.dataset.mode === 'CORREIO'){
-      const box = pill.closest('.edit-form').querySelector('[id^="editCorreioQtyBox-"]');
-      if(box) box.style.display = pill.classList.contains('active') ? 'block' : 'none';
-    }
-    return;
-  }
-  const twPill = e.target.closest('.tw-pill');
-  if(twPill){
-    const form = twPill.closest('.edit-form');
-    form.querySelectorAll('.tw-pill').forEach(b => b.classList.remove('active'));
-    twPill.classList.add('active');
-    const box = form.querySelector('[id^="editTwTimeBox-"]');
-    if(box) box.style.display = (twPill.dataset.tw === 'none') ? 'none' : 'block';
-  }
-});
-
-function openEditOrder(i){ editingIndex = i; renderOrders(); }
-function cancelEditOrder(){ editingIndex = null; renderOrders(); }
-function saveEditOrder(i){
-  const o = orders[i];
-  if(o.kind === 'avulsa'){
-    o.name = document.getElementById('editName').value.trim() || o.name;
-    o.address = document.getElementById('editAddress').value.trim() || o.address;
-    o.obs = document.getElementById('editObs').value.trim();
-  } else {
-    const sel = document.getElementById('editAddrSelect');
-    if(sel){
-      const [addr, comp] = sel.value.split('||').map(decodeURIComponent);
-      o.address = addr; o.complement = comp;
-    } else {
-      o.address = document.getElementById('editAddressManual').value.trim() || o.address;
-    }
-    const modes = [];
-    document.querySelectorAll(`#editModalPills-${i} .edit-pill.active`).forEach(b => {
-      let m = b.dataset.mode;
-      if(m === 'CORREIO'){
-        const qtyInput = document.getElementById(`editCorreioQtyInput-${i}`);
-        const qty = qtyInput ? qtyInput.value.trim() : '';
-        m = qty ? `CORREIO - ${qty} PACOTES` : 'CORREIO';
-      }
-      modes.push(m);
-    });
-    o.modes = modes;
-    o.obs = document.getElementById('editObs').value.trim();
-  }
-  const twBtn = document.querySelector(`#editTwPills-${i} .tw-pill.active`);
-  const twType = twBtn ? twBtn.dataset.tw : 'none';
-  const twInput = document.getElementById(`editTwTimeInput-${i}`);
-  o.timeWindow = { type: twType, time: twType === 'none' ? null : (twInput ? (twInput.value || null) : null) };
-  editingIndex = null;
-  renderOrders();
-  saveOrders();
-  showToast('Pedido atualizado');
-}
-
-function moveOrder(i, dir){ const j=i+dir; if(j<0||j>=orders.length) return; [orders[i],orders[j]]=[orders[j],orders[i]]; renderOrders(); saveOrders(); }
-function removeOrder(i){ orders.splice(i,1); renderOrders(); saveOrders(); }
-
-// ---------- ORGANIZAR ROTA (Google Routes API) ----------
-// Quando nenhum pedido intermediário tem horário (Antes de/Depois de),
-// segue exatamente como sempre: computeRoutes com optimizeWaypointOrder,
-// que só minimiza distância/tempo (a Routes API não tem noção de janela
-// de horário). Quando existe horário, computeRoutes não ajuda — em vez
-// disso buscamos a matriz de tempos entre todos os pontos
-// (computeRouteMatrix, uma chamada só) e resolvemos a ordem aqui mesmo,
-// com uma heurística que tenta respeitar os horários, não só checar depois.
-
-// simula a rota inteira pra uma sequência candidata de intermediários e
-// conta quantas paradas chegariam fora do horário definido.
-function evaluateSequence(seq, matrix, intermediates, cfg, saidaMin){
-  const n = intermediates.length;
-  let t = saidaMin;
-  let totalDist = 0;
-  let violations = 0;
-  let lastIdx = 0; // 0 = origem na matriz
-  for(const idx of seq){
-    const matIdx = idx + 1; // +1 porque a posição 0 da matriz é a origem
-    t += matrix.durationMin[lastIdx][matIdx];
-    totalDist += matrix.distanceMeters[lastIdx][matIdx];
-    const o = intermediates[idx];
-    if(violatesWindow(o.timeWindow, t)) violations++;
-    t += serviceTimeFor(o, cfg);
-    lastIdx = matIdx;
-  }
-  const destIdx = n + 1;
-  t += matrix.durationMin[lastIdx][destIdx];
-  totalDist += matrix.distanceMeters[lastIdx][destIdx];
-  return { violations, totalDist, finalTime: t };
-}
-
-// menos violações sempre ganha; entre sequências com o mesmo número de
-// violações, a de menor distância total ganha.
-function betterScore(a, b){
-  if(a.violations !== b.violations) return a.violations < b.violations;
-  return a.totalDist < b.totalDist - 1e-6;
-}
-
-// constrói uma ordem tentando respeitar os horários (cheapest insertion
-// avaliando violações + distância) e depois refina com or-opt (mover uma
-// parada sozinha) e 2-opt (inverter um trecho), só aceitando trocas que
-// não piorem o resultado.
-function solveTimeAwareOrder(intermediates, matrix, cfg, saidaMin){
-  let remaining = intermediates.map((_, i) => i);
-  let seq = [];
-
-  while(remaining.length > 0){
-    let bestCand = null, bestPos = null, bestScore = null;
-    for(const cand of remaining){
-      for(let pos = 0; pos <= seq.length; pos++){
-        const trial = seq.slice(0, pos).concat([cand], seq.slice(pos));
-        const score = evaluateSequence(trial, matrix, intermediates, cfg, saidaMin);
-        if(bestScore === null || betterScore(score, bestScore)){
-          bestScore = score; bestCand = cand; bestPos = pos;
-        }
-      }
-    }
-    seq.splice(bestPos, 0, bestCand);
-    remaining = remaining.filter(x => x !== bestCand);
-  }
-
-  let improved = true;
-  let iterations = 0;
-  const MAX_ITER = 300;
-  while(improved && iterations < MAX_ITER){
-    improved = false;
-    iterations++;
-    const currentScore = evaluateSequence(seq, matrix, intermediates, cfg, saidaMin);
-
-    for(let j = 0; j < seq.length && !improved; j++){
-      for(let i = 0; i <= seq.length; i++){
-        if(i === j || i === j + 1) continue;
-        const item = seq[j];
-        const withoutItem = seq.slice(0, j).concat(seq.slice(j + 1));
-        const insertAt = i > j ? i - 1 : i;
-        const trial = withoutItem.slice(0, insertAt).concat([item], withoutItem.slice(insertAt));
-        const score = evaluateSequence(trial, matrix, intermediates, cfg, saidaMin);
-        if(betterScore(score, currentScore)){ seq = trial; improved = true; break; }
-      }
-    }
-    if(improved) continue;
-
-    for(let i = 0; i < seq.length - 1 && !improved; i++){
-      for(let j = i + 1; j < seq.length; j++){
-        const trial = seq.slice(0, i).concat(seq.slice(i, j + 1).reverse(), seq.slice(j + 1));
-        const score = evaluateSequence(trial, matrix, intermediates, cfg, saidaMin);
-        if(betterScore(score, currentScore)){ seq = trial; improved = true; break; }
-      }
-    }
-  }
-
-  return { seq, score: evaluateSequence(seq, matrix, intermediates, cfg, saidaMin) };
-}
-
-async function organizeRoute(){
-  if(!hasGoogleMapsKey()){
-    showToast('Configure a variável de ambiente GOOGLE_MAPS_API_KEY no servidor');
-    return;
-  }
-
-  if(orders.length < 3){
-    showToast('Adicione pelo menos 3 paradas para organizar a rota');
-    return;
-  }
-
-  const origin = orders[0];
-  const destination = orders[orders.length - 1];
-  const intermediates = orders.slice(1, -1);
-
-  if(intermediates.length < 2){
-    showToast('Rota já está na melhor ordem possível');
-    return;
-  }
-
-  const hasAnyWindow = intermediates.some(o => o.timeWindow && o.timeWindow.type !== 'none');
-  let dayConfig = null;
-  if(hasAnyWindow){
-    dayConfig = await loadDoc(configKey(), null);
-    if(!dayConfig || !dayConfig.saida){
-      showToast('Configure o horário de saída no Planejamento da Rota antes de organizar — é necessário pra respeitar os horários dos pedidos');
-      return;
-    }
-  }
-
-  const totalPoints = intermediates.length + 2;
-  const useTimeAware = hasAnyWindow && totalPoints <= 25;
-  if(hasAnyWindow && totalPoints > 25){
-    showToast('Muitas paradas pra considerar os horários automaticamente (máx. 25) — organizando só por distância');
-  }
-
-  organizeBtn.disabled = true;
-  const originalLabel = organizeBtn.textContent;
-  organizeBtn.textContent = 'Organizando...';
-
-  try {
-    let orderedIntermediates;
-    let violationCount = 0;
-
-    if(useTimeAware){
-      const addresses = [origin.address, ...intermediates.map(o => o.address), destination.address];
-      const matrix = await computeRouteMatrixRequest(addresses);
-      const saidaMin = timeToMinutes(dayConfig.saida);
-      const { seq, score } = solveTimeAwareOrder(intermediates, matrix, dayConfig, saidaMin);
-      orderedIntermediates = seq.map(idx => intermediates[idx]);
-      violationCount = score.violations;
-    } else {
-      const data = await computeRoutesRequest({
-        origin: origin.address,
-        destination: destination.address,
-        intermediates: intermediates.map(o => o.address),
-        optimizeWaypointOrder: true,
-        fieldMask: 'routes.optimizedIntermediateWaypointIndex'
-      });
-      const order = data.routes?.[0]?.optimizedIntermediateWaypointIndex;
-      orderedIntermediates = Array.isArray(order) ? order.map(idx => intermediates[idx]) : intermediates;
-    }
-
-    orders = [origin, ...orderedIntermediates, destination];
-    renderOrders();
-    saveOrders();
-    showToast(violationCount > 0
-      ? `Rota organizada — ${violationCount} pedido(s) ainda fora do horário (veja o Planejamento da Rota)`
-      : 'Rota organizada!');
-  } catch(e){
-    showToast('Não foi possível organizar a rota: ' + e.message);
-  } finally {
-    organizeBtn.disabled = false;
-    organizeBtn.textContent = originalLabel;
+    const s = summarizeRoute(last);
+    lastBody.innerHTML = `
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">${last.date.split('-').reverse().join('/')} · Rota ${last.seq}</div>
+      <p class="note" style="margin-top:8px;">${s.paradas} paradas · ${s.km.toFixed(1).replace('.',',')} km · ${s.entregas} entregas · ${s.trocas} trocas${s.naoEntregues ? ' · ' + s.naoEntregues + ' não entregue(s)' : ''}</p>
+      <a href="rota-detalhes.html?id=${last.id}" class="btn btn-outline" style="margin-top:10px;">Ver detalhes</a>`;
   }
 }
-
-organizeBtn.addEventListener('click', organizeRoute);
-
-// ---------- FINALIZAR ROTA ----------
-finalizeBtn.addEventListener('click', async () => {
-  if(orders.length === 0) return;
-  finalizeBtn.disabled = true;
-  try {
-    const snapshot = { orders: JSON.parse(JSON.stringify(orders)), finalizedAt: Date.now() };
-    await saveDoc(finalizedKey(), snapshot);
-    showToast('Rota finalizada! Abra o Planejamento da Rota.');
-  } finally {
-    finalizeBtn.disabled = false;
-  }
-});
-
-// ---------- ARRASTAR PARA REORDENAR ----------
-let dragState = null;
-function attachDragHandlers(){
-  document.querySelectorAll('.drag-handle').forEach(handle => {
-    handle.onpointerdown = onDragStart;
-  });
-}
-function onDragStart(e){
-  const ticket = e.target.closest('.ticket');
-  if(!ticket) return;
-  const rect = ticket.getBoundingClientRect();
-
-  const placeholder = document.createElement('div');
-  placeholder.className = 'ticket-placeholder';
-  placeholder.style.height = rect.height + 'px';
-  ticket.parentNode.insertBefore(placeholder, ticket);
-
-  dragState = {
-    ticket,
-    placeholder,
-    offsetX: e.clientX - rect.left,
-    offsetY: e.clientY - rect.top
-  };
-
-  ticket.style.width = rect.width + 'px';
-  ticket.style.left = rect.left + 'px';
-  ticket.style.top = rect.top + 'px';
-  ticket.classList.add('dragging');
-
-  document.addEventListener('pointermove', onDragMove);
-  document.addEventListener('pointerup', onDragEnd);
-  e.preventDefault();
-}
-function onDragMove(e){
-  if(!dragState) return;
-  const { ticket, placeholder, offsetX, offsetY } = dragState;
-
-  ticket.style.left = (e.clientX - offsetX) + 'px';
-  ticket.style.top = (e.clientY - offsetY) + 'px';
-
-  const list = document.getElementById('ordersList');
-  const tickets = Array.from(list.querySelectorAll('.ticket:not(.dragging)'));
-  const y = e.clientY;
-  let nextSibling = null;
-  for(const t of tickets){
-    const r = t.getBoundingClientRect();
-    if(y < r.top + r.height/2){ nextSibling = t; break; }
-  }
-  if(nextSibling) list.insertBefore(placeholder, nextSibling);
-  else list.appendChild(placeholder);
-}
-function onDragEnd(){
-  if(!dragState) return;
-  const { ticket, placeholder } = dragState;
-
-  placeholder.replaceWith(ticket);
-  ticket.classList.remove('dragging');
-  ticket.style.left = '';
-  ticket.style.top = '';
-  ticket.style.width = '';
-
-  document.removeEventListener('pointermove', onDragMove);
-  document.removeEventListener('pointerup', onDragEnd);
-  const newIds = Array.from(document.getElementById('ordersList').querySelectorAll('.ticket')).map(t => t.dataset.orderId);
-  orders = newIds.map(id => orders.find(o => o._id === id));
-  dragState = null;
-  renderOrders();
-  saveOrders();
-}
-
-document.getElementById('clearBtn').addEventListener('click', () => {
-  if(orders.length === 0) return;
-  if(confirm('Limpar todas as paradas de hoje?')){ orders = []; renderOrders(); saveOrders(); }
-});
-
-document.getElementById('copyBtn').addEventListener('click', () => {
-  if(orders.length === 0){ showToast('Nenhuma parada para copiar'); return; }
-  const lines = orders.map(o => {
-    if(o.kind === 'avulsa'){
-      let block = `${o.name.toUpperCase()}\n${o.address}`;
-      if(o.obs) block += `\n${o.obs}`;
-      return block;
-    }
-    let block = `${o.name} - ${o.modes.join(' + ')}`;
-    if(o.phone) block += `\n${o.phone}`;
-    block += `\n${o.address}`;
-    if(o.complement) block += `\n${o.complement}`;
-    if(o.ref) block += `\n${o.ref}`;
-    if(o.obs) block += `\n${o.obs}`;
-    return block;
-  });
-  const text = lines.join('\n\n');
-  navigator.clipboard.writeText(text).then(() => showToast('Lista copiada!')).catch(() => showToast('Não foi possível copiar'));
-});
-
-document.getElementById('exportBtn').addEventListener('click', () => {
-  const backup = CLIENTS.map(c => ({
-    id: 'novo_' + Math.random().toString(36).slice(2,10),
-    name: c.n, phone: c.f, city: c.c,
-    addresses: c.a.map(a => ({ type: a.t, address: a.e, complement: a.x, obs: a.o, principal: a.p })),
-    updatedAt: new Date().toISOString()
-  }));
-  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'cadastro_atualizado_' + new Date().toISOString().slice(0,10) + '.json';
-  a.click();
-  showToast('Cadastro baixado');
-});
+init();
 </script>
 </body>
 </html>

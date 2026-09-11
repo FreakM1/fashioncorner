@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detalhes da Rota</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .status-select{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;padding:3px 8px;border-radius:20px;border:1px solid var(--line);background:#fff;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page">
+
+      <div id="notFound" class="card empty-state" style="display:none;">Rota não encontrada.</div>
+
+      <div id="content" style="display:none;">
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">Km</div><div class="kpi-value" id="dKm"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Paradas</div><div class="kpi-value" id="dParadas"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Entregas</div><div class="kpi-value" id="dEntregas"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Não entregues</div><div class="kpi-value" id="dNaoEntregues"></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Resumo</div>
+          <p class="note" id="summaryLine"></p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Paradas</div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr><th>#</th><th>Cliente</th><th>Tipo</th><th>Endereço</th><th>Horário</th><th>Status</th></tr></thead>
+              <tbody id="stopsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Observações da rota</div>
+          <textarea id="obsInput" placeholder="Ex: cliente X não atendeu, tentamos contato por WhatsApp." style="min-height:70px;"></textarea>
+          <button class="btn btn-dark" id="saveObsBtn" style="margin-top:10px;">Salvar observações</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="assets/shared.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+renderShell({ active: 'historico', title: 'Detalhes da Rota', subtitle: 'Conferência da rota realizada' });
+
+const toast = document.getElementById('toast');
+function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
+
+let route = null;
+
+async function init(){
+  await ensureAuth();
+  const id = new URLSearchParams(location.search).get('id');
+  route = id ? await loadDoc(id, null) : null;
+  if(!route){
+    document.getElementById('notFound').style.display = 'block';
+    return;
+  }
+  document.getElementById('content').style.display = 'block';
+  document.title = `Rota ${route.seq} — ${route.date}`;
+
+  const s = summarizeRoute(route);
+  document.getElementById('dKm').textContent = s.km.toFixed(1).replace('.',',') + ' km';
+  document.getElementById('dParadas').textContent = s.paradas;
+  document.getElementById('dEntregas').textContent = s.entregas;
+  document.getElementById('dNaoEntregues').textContent = s.naoEntregues;
+
+  const statusLabel = route.status === 'finalizada' ? 'Finalizada' : 'Em andamento';
+  document.getElementById('summaryLine').innerHTML =
+    `Data: <strong>${route.date.split('-').reverse().join('/')}</strong> · Rota ${route.seq} · Status: <strong>${statusLabel}</strong>` +
+    (route.finalizedAt ? ` · Finalizada às ${new Date(route.finalizedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}` : '') +
+    `<br>Trocas: ${s.trocas} · Provas: ${s.provas} · Retiradas: ${s.retiradas} · Com horário definido: ${s.comHorario}`;
+
+  const orders = route.orders || [];
+  document.getElementById('stopsBody').innerHTML = orders.map((o, i) => {
+    const isEdge = i === 0 || i === orders.length - 1;
+    const tipo = o.kind === 'avulsa' ? 'Parada avulsa' : (o.modes||[]).join(' + ');
+    const statusHtml = isEdge ? '—' : `<select class="status-select" data-idx="${i}">
+      ${Object.entries(STOP_STATUS_LABELS).map(([k,l]) => `<option value="${k}" ${(o.status||'pendente')===k?'selected':''}>${l}</option>`).join('')}
+    </select>`;
+    return `<tr>
+      <td>${i+1}</td><td>${o.name}</td><td>${tipo}</td><td>${o.address}</td>
+      <td>${timeWindowLabel(o.timeWindow) || '—'}</td><td>${statusHtml}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('obsInput').value = route.observacoes || '';
+}
+
+document.getElementById('stopsBody').addEventListener('change', async (e) => {
+  const sel = e.target.closest('.status-select');
+  if(!sel) return;
+  route.orders[parseInt(sel.dataset.idx)].status = sel.value;
+  await saveDoc(route.id, route);
+  showToast('Status atualizado');
+});
+
+document.getElementById('saveObsBtn').addEventListener('click', async () => {
+  route.observacoes = document.getElementById('obsInput').value.trim();
+  await saveDoc(route.id, route);
+  showToast('Observações salvas');
+});
+
+init();
+</script>
+</body>
+</html>
