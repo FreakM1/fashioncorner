@@ -26,6 +26,11 @@
   .auth-note{background:#FBF3E2;color:#8A6A1F;border-radius:8px;padding:9px 12px;font-size:12.5px;margin-bottom:14px;display:none;}
   .back-link{display:block;text-align:center;margin-top:16px;font-size:12.5px;color:var(--muted);text-decoration:none;}
   .config-warning{max-width:400px;margin:0 auto 16px;background:#FBEAE8;color:var(--danger);border-radius:10px;padding:12px 14px;font-size:12.5px;display:none;}
+  .pw-wrap{position:relative;}
+  .pw-wrap input{padding-right:42px;}
+  .pw-toggle{position:absolute;right:6px;top:6px;width:30px;height:30px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px;}
+  .pw-toggle:hover{background:var(--paper-2);color:var(--ink);}
+  .pw-toggle svg{width:18px;height:18px;}
 </style>
 </head>
 <body>
@@ -61,7 +66,13 @@
       <label class="f-label">E-mail</label>
       <input type="text" id="email" placeholder="voce@loja.com" autocomplete="email" required>
       <label class="f-label">Senha</label>
-      <input type="text" id="password" placeholder="••••••••" autocomplete="current-password" required style="font-family:text-security-disc;" >
+      <div class="pw-wrap">
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+        <button type="button" class="pw-toggle" id="pwToggle" aria-label="Mostrar senha">
+          <svg id="pwIconShow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="pwIconHide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none;"><path d="M3 3l18 18"/><path d="M10.6 5.2A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a13.2 13.2 0 0 1-2.7 3.6M6.6 6.6C4 8.3 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 3.4-.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+        </button>
+      </div>
       <button type="submit" class="btn btn-primary" id="submitBtn">Entrar</button>
     </form>
   </div>
@@ -69,12 +80,26 @@
   <a href="index.html" class="back-link">&larr; Voltar</a>
 </div>
 
+<script src="https://accounts.google.com/gsi/client"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="assets/supabase-config.js"></script>
 <script>
-// senha precisa de type=password de verdade — o atributo acima foi só um
-// placeholder de estilo, corrige o type via JS pra não conflitar com o CSS.
-document.getElementById('password').type = 'password';
+const pwInput = document.getElementById('password');
+const pwToggle = document.getElementById('pwToggle');
+pwToggle.addEventListener('click', () => {
+  const showing = pwInput.type === 'text';
+  pwInput.type = showing ? 'password' : 'text';
+  document.getElementById('pwIconShow').style.display = showing ? '' : 'none';
+  document.getElementById('pwIconHide').style.display = showing ? 'none' : '';
+  pwToggle.setAttribute('aria-label', showing ? 'Mostrar senha' : 'Ocultar senha');
+});
+
+// Client ID público do OAuth do Google (não é segredo — é o mesmo id que
+// já aparece na tela de consentimento). Usado só pelo Google Identity
+// Services (GIS) pra gerar um ID token direto no navegador, sem redirecionar
+// pro domínio do Supabase — por isso a tela do Google mostra o domínio da
+// própria plataforma, e não vqnbfwhtqrfmaeyajiae.supabase.co.
+const GOOGLE_CLIENT_ID = '394737799985-q0iqa1nuefejs2au86b27b54mro2ajuh.apps.googleusercontent.com';
 
 let mode = new URLSearchParams(location.search).get('mode') === 'signup' ? 'signup' : 'login';
 
@@ -143,13 +168,29 @@ els.form.addEventListener('submit', async (e) => {
   }
 });
 
-els.googleBtn.addEventListener('click', async () => {
+// Botão real do Google fica escondido — clicamos nele por trás do nosso
+// botão estilizado, pra manter o visual mas usar o fluxo de ID token do GIS.
+const hiddenGoogleWrap = document.createElement('div');
+hiddenGoogleWrap.style.display = 'none';
+document.body.appendChild(hiddenGoogleWrap);
+
+async function handleGoogleCredential(response){
   if(!sb) return;
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: location.origin + '/dashboard.html' }
-  });
-  if(error) showError(error.message);
+  const { error } = await sb.auth.signInWithIdToken({ provider: 'google', token: response.credential });
+  if(error){ showError(error.message); return; }
+  location.href = 'dashboard.html';
+}
+
+if(typeof google !== 'undefined' && sb){
+  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
+  google.accounts.id.renderButton(hiddenGoogleWrap, { type: 'standard' });
+}
+
+els.googleBtn.addEventListener('click', () => {
+  if(typeof google === 'undefined'){ showError('Não foi possível carregar o login do Google.'); return; }
+  const realBtn = hiddenGoogleWrap.querySelector('div[role=button]');
+  if(realBtn) realBtn.click();
+  else google.accounts.id.prompt();
 });
 </script>
 </body>
