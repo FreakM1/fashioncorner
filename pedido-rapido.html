@@ -270,7 +270,7 @@ searchInput.addEventListener('input', () => {
   const matches = CLIENTS.filter(c => norm(c.n).includes(q)).slice(0, 8);
   resultsEl.innerHTML = matches.length === 0
     ? '<div class="result-empty">Nenhuma cliente encontrada. Use "+ Nova cliente" pra cadastrar.</div>'
-    : matches.map(c => `<div class="result-item" data-idx="${CLIENTS.indexOf(c)}"><span class="rname">${c.n}</span><span class="rcity">${c.c || '—'}</span></div>`).join('');
+    : matches.map(c => `<div class="result-item" data-idx="${CLIENTS.indexOf(c)}"><span class="rname">${escapeHtml(c.n)}</span><span class="rcity">${escapeHtml(c.c) || '—'}</span></div>`).join('');
   resultsEl.classList.add('open');
 });
 resultsEl.addEventListener('click', (e) => {
@@ -304,10 +304,10 @@ function selectClient(client){
 function renderAddrList(){
   addrList.innerHTML = selected.client.a.map((addr, i) => `
     <div class="addr-card ${selected.addrIndex===i ? 'selected':''}" data-idx="${i}">
-      <div class="addr-top"><span class="type-badge">${addr.t || 'Endereço'}</span>${addr.p ? '<span class="principal-star">★ principal</span>' : ''}</div>
-      <div class="addr-text">${addr.e}</div>
-      ${addr.x ? `<div class="addr-extra">${addr.x}</div>` : ''}
-      ${addr.o ? `<div class="addr-extra">Obs: ${addr.o}</div>` : ''}
+      <div class="addr-top"><span class="type-badge">${escapeHtml(addr.t) || 'Endereço'}</span>${addr.p ? '<span class="principal-star">★ principal</span>' : ''}</div>
+      <div class="addr-text">${escapeHtml(addr.e)}</div>
+      ${addr.x ? `<div class="addr-extra">${escapeHtml(addr.x)}</div>` : ''}
+      ${addr.o ? `<div class="addr-extra">Obs: ${escapeHtml(addr.o)}</div>` : ''}
     </div>`).join('');
 }
 addrList.addEventListener('click', (e) => {
@@ -441,7 +441,6 @@ document.getElementById('naSave').addEventListener('click', () => {
 
 // ---------- EDITAR CADASTRO ----------
 let ecBlockCounter = 0;
-function escapeAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 function createEcBlock(addr){
   const id = 'ec' + (ecBlockCounter++);
   const div = document.createElement('div');
@@ -457,10 +456,10 @@ function createEcBlock(addr){
       </select>
       <label class="check-row" style="margin:0;"><input type="radio" name="ecPrincipal" class="ec-principal" value="${id}" ${addr.p?'checked':''}> Principal</label>
     </div>
-    <input type="text" class="ec-address" value="${escapeAttr(addr.e)}" placeholder="Endereço completo" style="margin-top:8px;">
+    <input type="text" class="ec-address" value="${escapeHtml(addr.e)}" placeholder="Endereço completo" style="margin-top:8px;">
     <div class="two-col" style="margin-top:8px;">
-      <input type="text" class="ec-complement" value="${escapeAttr(addr.x)}" placeholder="Complemento">
-      <input type="text" class="ec-obs" value="${escapeAttr(addr.o)}" placeholder="Referência/obs">
+      <input type="text" class="ec-complement" value="${escapeHtml(addr.x)}" placeholder="Complemento">
+      <input type="text" class="ec-obs" value="${escapeHtml(addr.o)}" placeholder="Referência/obs">
     </div>`;
   return div;
 }
@@ -546,8 +545,8 @@ function renderLastAdded(){
     ? '<p class="note">Nenhuma parada adicionada ainda hoje.</p>'
     : last.map(o => `
       <div class="last-added">
-        <div class="la-name">${o.name}</div>
-        <div class="la-meta">${o.kind === 'avulsa' ? 'Parada avulsa' : (o.modes||[]).join(' + ')}${timeWindowLabel(o.timeWindow) ? ' · ' + timeWindowLabel(o.timeWindow) : ''}</div>
+        <div class="la-name">${escapeHtml(o.name)}</div>
+        <div class="la-meta">${o.kind === 'avulsa' ? 'Parada avulsa' : escapeHtml((o.modes||[]).join(' + '))}${timeWindowLabel(o.timeWindow) ? ' · ' + escapeHtml(timeWindowLabel(o.timeWindow)) : ''}</div>
       </div>`).join('');
 }
 </script>

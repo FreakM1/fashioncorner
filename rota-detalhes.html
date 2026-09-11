@@ -98,8 +98,8 @@ async function init(){
       ${Object.entries(STOP_STATUS_LABELS).map(([k,l]) => `<option value="${k}" ${(o.status||'pendente')===k?'selected':''}>${l}</option>`).join('')}
     </select>`;
     return `<tr>
-      <td>${i+1}</td><td>${o.name}</td><td>${tipo}</td><td>${o.address}</td>
-      <td>${timeWindowLabel(o.timeWindow) || '—'}</td><td>${statusHtml}</td>
+      <td>${i+1}</td><td>${escapeHtml(o.name)}</td><td>${escapeHtml(tipo)}</td><td>${escapeHtml(o.address)}</td>
+      <td>${escapeHtml(timeWindowLabel(o.timeWindow)) || '—'}</td><td>${statusHtml}</td>
     </tr>`;
   }).join('');
 

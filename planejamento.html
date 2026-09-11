@@ -234,7 +234,7 @@ function renderReport(report){
 
   document.getElementById('reportBody').innerHTML = report.rows.filter(r => !r.isEdge).map(r => `
     <tr style="${r.violated ? 'background:#FBF0F2;' : ''}">
-      <td>${r.name}</td>
+      <td>${escapeHtml(r.name)}</td>
       <td>${r.etaLabel}</td>
     </tr>`).join('');
 

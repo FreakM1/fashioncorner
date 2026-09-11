@@ -11,6 +11,15 @@
 const GOOGLE_MAPS_API_KEY = "__GOOGLE_MAPS_API_KEY__";
 function hasGoogleMapsKey(){ return !!GOOGLE_MAPS_API_KEY && !GOOGLE_MAPS_API_KEY.startsWith('__'); }
 
+// Escapa texto antes de jogar em innerHTML — todo campo digitado pelo
+// usuário (nome, endereço, telefone, observações etc.) passa por aqui
+// antes de entrar num template de HTML, pra evitar XSS armazenado.
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 // Persistência via Supabase (tabela "documents", protegida por RLS —
 // cada usuário só lê/escreve os documentos que ele mesmo é owner_id).
 // O cliente `sb` já vem inicializado por assets/supabase-config.js,

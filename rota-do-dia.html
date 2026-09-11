@@ -256,18 +256,18 @@ function renderOrders(){
     </select>`;
     const cls = o.kind === 'avulsa' ? 'ticket avulsa' : 'ticket';
     const meta = o.kind === 'avulsa'
-      ? (twLabel ? `<span class="pill">${twLabel}</span>` : '')
-      : `${(o.modes||[]).map(m => `<span class="pill">${m}</span>`).join('')}${twLabel ? `<span class="pill">${twLabel}</span>` : ''}`;
+      ? (twLabel ? `<span class="pill">${escapeHtml(twLabel)}</span>` : '')
+      : `${(o.modes||[]).map(m => `<span class="pill">${escapeHtml(m)}</span>`).join('')}${twLabel ? `<span class="pill">${escapeHtml(twLabel)}</span>` : ''}`;
     const isEdge = (i === 0 || i === orders.length - 1);
     const etaHtml = (etas && !isEdge) ? `<div class="eta-badge">chegada ~${fmtTime(etas[i])}</div>` : '';
     return `<div class="${cls}" data-order-id="${o._id}">
       <span class="drag-handle">⠿</span>
       <div class="num">${i+1}</div><div class="body">
-      <div class="tname">${o.name}</div>
-      <div class="taddr">${o.address}${o.complement ? ' · ' + o.complement : ''}</div>
+      <div class="tname">${escapeHtml(o.name)}</div>
+      <div class="taddr">${escapeHtml(o.address)}${o.complement ? ' · ' + escapeHtml(o.complement) : ''}</div>
       ${etaHtml}
       <div class="tmeta">${meta}${statusSelect}</div>
-      ${o.obs ? `<div class="tobs">${o.obs}</div>` : ''}
+      ${o.obs ? `<div class="tobs">${escapeHtml(o.obs)}</div>` : ''}
       </div><div class="actions">
         <button class="mini-btn" onclick="openEditOrder(${i})" title="Editar">✎</button>
         <button class="mini-btn" onclick="moveOrder(${i},-1)" title="Subir">↑</button>
@@ -300,16 +300,16 @@ function renderTwEditBlock(i, tw){
 }
 
 function renderEditTicket(o, i){
-  const addrInput = `<input type="text" id="editAddress" value="${(o.address||'').replace(/"/g,'&quot;')}">`;
+  const addrInput = `<input type="text" id="editAddress" value="${escapeHtml(o.address)}">`;
   if(o.kind === 'avulsa'){
     return `<div class="ticket avulsa" data-order-id="${o._id}"><div class="edit-form">
       <label class="f-label" style="margin-top:0;">Nome da parada</label>
-      <input type="text" id="editName" value="${(o.name||'').replace(/"/g,'&quot;')}">
+      <input type="text" id="editName" value="${escapeHtml(o.name)}">
       <label class="f-label">Endereço</label>
       ${addrInput}
       ${renderTwEditBlock(i, o.timeWindow)}
       <label class="f-label">Observação</label>
-      <textarea id="editObs">${o.obs || ''}</textarea>
+      <textarea id="editObs">${escapeHtml(o.obs)}</textarea>
       <div class="edit-actions">
         <button class="save-btn" onclick="saveEditOrder(${i})">Salvar</button>
         <button onclick="cancelEditOrder()">Cancelar</button>
@@ -318,7 +318,7 @@ function renderEditTicket(o, i){
   }
   const correioQty = extractCorreioQty(o.modes);
   return `<div class="ticket" data-order-id="${o._id}"><div class="edit-form">
-    <div class="tname">${o.name}</div>
+    <div class="tname">${escapeHtml(o.name)}</div>
     <label class="f-label">Endereço</label>
     ${addrInput}
     <label class="f-label">Tipo de atendimento</label>
@@ -331,7 +331,7 @@ function renderEditTicket(o, i){
     </div>
     ${renderTwEditBlock(i, o.timeWindow)}
     <label class="f-label">Observação</label>
-    <textarea id="editObs">${o.obs || ''}</textarea>
+    <textarea id="editObs">${escapeHtml(o.obs)}</textarea>
     <div class="edit-actions">
       <button class="save-btn" onclick="saveEditOrder(${i})">Salvar</button>
       <button onclick="cancelEditOrder()">Cancelar</button>
