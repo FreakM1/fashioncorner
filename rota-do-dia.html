@@ -456,16 +456,13 @@ document.getElementById('copyBtn').addEventListener('click', () => {
   const lines = orders.map((o, i) => {
     const n = `${i + 1}. `;
     if(o.kind === 'avulsa'){
-      let block = `${n}${o.name.toUpperCase()}\n${o.address}`;
-      if(o.obs) block += `\n${o.obs}`;
-      return block;
+      return `${n}${o.name.toUpperCase()}${o.obs ? ' - ' + o.obs : ''}\n${o.address}`;
     }
-    let block = `${n}${o.name} - ${(o.modes||[]).join(' + ')}`;
+    let block = `${n}${o.name} - ${(o.modes||[]).join(' + ')}${o.obs ? ' - ' + o.obs : ''}`;
     if(o.phone) block += `\n${o.phone}`;
     block += `\n${o.address}`;
     if(o.complement) block += `\n${o.complement}`;
     if(o.ref) block += `\n${o.ref}`;
-    if(o.obs) block += `\n${o.obs}`;
     return block;
   });
   navigator.clipboard.writeText(lines.join('\n\n')).then(() => showToast('Lista copiada!')).catch(() => showToast('Não foi possível copiar'));
