@@ -3,7 +3,6 @@ FROM nginx:alpine
 COPY index.html /usr/share/nginx/html/index.html
 COPY login.html /usr/share/nginx/html/login.html
 COPY dashboard.html /usr/share/nginx/html/dashboard.html
-COPY pedido-rapido.html /usr/share/nginx/html/pedido-rapido.html
 COPY rota-do-dia.html /usr/share/nginx/html/rota-do-dia.html
 COPY planejamento.html /usr/share/nginx/html/planejamento.html
 COPY historico.html /usr/share/nginx/html/historico.html
