@@ -20,7 +20,11 @@ function renderShell({ active, title, subtitle }){
         <a href="${item.href}" class="${item.key === active ? 'active' : ''}">
           <span class="icon">${item.icon}</span><span class="label">${item.label}</span>
         </a>`).join('')}
-    </nav>`;
+    </nav>
+    <div class="sidebar-account">
+      <div class="sidebar-account-email" id="sidebarAccountEmail">&nbsp;</div>
+      <button class="sidebar-logout" id="sidebarLogoutBtn">Sair da conta</button>
+    </div>`;
 
   const topbar = document.getElementById('topbar');
   const dateLabel = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -31,13 +35,18 @@ function renderShell({ active, title, subtitle }){
     </div>
     <div class="topbar-right">
       <div class="topbar-date">${dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</div>
-      <div class="avatar" id="logoutBtn" title="Sair">FC</div>
+      <div class="avatar">FC</div>
     </div>`;
 
-  const logoutBtn = document.getElementById('logoutBtn');
-  logoutBtn.style.cursor = 'pointer';
-  logoutBtn.addEventListener('click', async () => {
+  document.getElementById('sidebarLogoutBtn').addEventListener('click', async () => {
     if(typeof sb !== 'undefined' && sb) await sb.auth.signOut();
     location.href = 'login.html';
   });
+
+  if(typeof sb !== 'undefined' && sb){
+    sb.auth.getSession().then(({ data }) => {
+      const email = data.session && data.session.user && data.session.user.email;
+      if(email) document.getElementById('sidebarAccountEmail').textContent = email;
+    });
+  }
 }

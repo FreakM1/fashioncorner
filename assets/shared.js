@@ -2,20 +2,6 @@
 // planejamento.html (Planejamento da Rota). Não duplicar essa lógica nas
 // páginas — sempre carregar este arquivo antes do script de cada página.
 
-// =====================================================================
-// COLE AQUI a configuração copiada do Firebase (Configurações do projeto
-// → Seus apps → ícone </> → firebaseConfig). Substitua o objeto inteiro
-// abaixo pelo que você copiou de lá.
-// =====================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyClU_H8qtpFLsa7jNhJWFQstVRvP3A2kXM",
-  authDomain: "entregas-fashion-corner.firebaseapp.com",
-  projectId: "entregas-fashion-corner",
-  storageBucket: "entregas-fashion-corner.firebasestorage.app",
-  messagingSenderId: "87444520790",
-  appId: "1:87444520790:web:a3bb5e54582b5d694ce0f7"
-};
-
 // Chave usada para chamar a Routes API do Google (otimização de rota e
 // cálculo de trechos de deslocamento). O placeholder abaixo é substituído
 // em tempo de deploy pelo valor da variável de ambiente
@@ -25,40 +11,38 @@ const firebaseConfig = {
 const GOOGLE_MAPS_API_KEY = "__GOOGLE_MAPS_API_KEY__";
 function hasGoogleMapsKey(){ return !!GOOGLE_MAPS_API_KEY && !GOOGLE_MAPS_API_KEY.startsWith('__'); }
 
+// Persistência via Supabase (tabela "documents", protegida por RLS —
+// cada usuário só lê/escreve os documentos que ele mesmo é owner_id).
+// O cliente `sb` já vem inicializado por assets/supabase-config.js,
+// carregado antes deste arquivo em toda página do painel.
 let LIVE = false;
-let db = null;
-try {
-  if(firebaseConfig.apiKey !== "SUA_API_KEY"){
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    LIVE = true;
-  }
-} catch(e){ LIVE = false; }
+let currentUserId = null;
 
 async function ensureAuth(){
-  if(!LIVE) return;
+  if(typeof sb === 'undefined' || !sb){ LIVE = false; return; }
   try {
-    await new Promise((resolve, reject) => {
-      firebase.auth().onAuthStateChanged(user => {
-        if(user){ resolve(user); return; }
-        firebase.auth().signInAnonymously().catch(reject);
-      }, reject);
-    });
+    const { data } = await sb.auth.getSession();
+    if(data.session && data.session.user){
+      currentUserId = data.session.user.id;
+      LIVE = true;
+    } else {
+      LIVE = false;
+    }
   } catch(e){ LIVE = false; }
 }
 
-const COL = 'pedido_rapido';
 function dateSuffix(){ return new Date().toISOString().slice(0,10); }
 function todayKey(){ return 'orders-' + dateSuffix(); }
 function finalizedKey(){ return 'finalized-' + dateSuffix(); }
 function configKey(){ return 'config-' + dateSuffix(); }
 function reportKey(){ return 'report-' + dateSuffix(); }
 
-// Leitura/escrita genérica pros documentos novos (rota finalizada,
-// configuração do dia, relatório calculado). Sempre espelha no
-// localStorage — index.html e planejamento.html são páginas separadas e
-// não compartilham memória JS entre navegações — e também no Firestore
-// quando LIVE, pro dado sincronizar entre dispositivos.
+// Leitura/escrita genérica pros documentos do app (pedidos do dia, rota
+// finalizada, configuração do dia, relatório calculado, base de clientes).
+// Sempre espelha no localStorage — cada página é um documento HTML
+// separado e não compartilha memória JS entre navegações — e também no
+// Supabase quando LIVE, pro dado sincronizar entre dispositivos e ficar
+// restrito à conta autenticada (nunca público).
 async function loadDoc(id, fallback){
   let local = fallback;
   try {
@@ -67,15 +51,18 @@ async function loadDoc(id, fallback){
   } catch(e){}
   if(!LIVE) return local;
   try {
-    const doc = await db.collection(COL).doc(id).get();
-    return doc.exists ? doc.data().value : local;
+    const { data, error } = await sb.from('documents').select('value').eq('id', id).maybeSingle();
+    if(error) throw error;
+    return data ? data.value : local;
   } catch(e){ return local; }
 }
 async function saveDoc(id, value){
   try { localStorage.setItem('pr_' + id, JSON.stringify(value)); } catch(e){}
   if(!LIVE) return;
-  try { await db.collection(COL).doc(id).set({ value, updatedAt: Date.now() }); }
-  catch(e){ /* fica salvo local; sincroniza quando a conexão voltar */ }
+  try {
+    const { error } = await sb.from('documents').upsert({ id, value, owner_id: currentUserId, updated_at: new Date().toISOString() });
+    if(error) throw error;
+  } catch(e){ /* fica salvo local; sincroniza quando a conexão voltar */ }
 }
 
 // Tipos de atendimento — usado no formulário do Pedido Rápido e no

@@ -31,6 +31,11 @@ img{max-width:100%;}
 .sidebar-nav a.active{background:var(--wine);color:#fff;}
 .sidebar-nav a .icon{width:17px;text-align:center;flex-shrink:0;font-size:14px;}
 
+.sidebar-account{margin-top:auto;padding:14px 10px 4px;border-top:1px solid var(--line);}
+.sidebar-account-email{font-size:11px;color:var(--muted);word-break:break-all;margin-bottom:8px;}
+.sidebar-logout{width:100%;background:transparent;border:1.5px solid var(--line);border-radius:9px;padding:8px 10px;font-family:'Work Sans',sans-serif;font-size:12.5px;font-weight:600;color:var(--wine);cursor:pointer;transition:background .15s;}
+.sidebar-logout:hover{background:var(--paper-2);}
+
 .topbar{
   height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
   padding:0 28px;border-bottom:1px solid var(--line);background:#fff;
