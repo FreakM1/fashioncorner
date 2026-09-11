@@ -38,7 +38,7 @@
           <div class="card-title">Paradas</div>
           <div style="overflow-x:auto;">
             <table class="data-table">
-              <thead><tr><th>#</th><th>Cliente</th><th>Tipo</th><th>Endereço</th><th>Horário</th><th>Status</th></tr></thead>
+              <thead><tr><th>#</th><th>Cliente</th><th>Tipo</th><th>Horário previsto</th><th>Status</th></tr></thead>
               <tbody id="stopsBody"></tbody>
             </table>
           </div>
@@ -67,6 +67,28 @@ function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); s
 
 let route = null;
 
+// horário previsto de chegada em cada parada, calculado do mesmo jeito
+// que na Rota do Dia/Planejamento: saída + deslocamentos (legs já
+// salvos na conclusão da rota) + tempo padrão + tempo de prova. Usa a
+// config do DIA da rota (não a de hoje) pra continuar correto mesmo
+// olhando uma rota antiga.
+async function computeStopEtas(route){
+  const orders = route.orders || [];
+  const legs = route.legs;
+  if(!legs || legs.length !== orders.length - 1) return null;
+  const cfg = await loadDoc('config-' + route.date, null);
+  if(!cfg || !cfg.saida) return null;
+  let t = timeToMinutes(cfg.saida);
+  const etas = [];
+  for(let i = 0; i < orders.length; i++){
+    if(i > 0) t += legs[i-1].durationSec / 60;
+    etas.push(t);
+    const isEdge = (i === 0 || i === orders.length - 1);
+    if(!isEdge) t += serviceTimeFor(orders[i], cfg);
+  }
+  return etas;
+}
+
 async function init(){
   await ensureAuth();
   const id = new URLSearchParams(location.search).get('id');
@@ -91,15 +113,18 @@ async function init(){
     `<br>Trocas: ${s.trocas} · Provas: ${s.provas} · Retiradas: ${s.retiradas} · Com horário definido: ${s.comHorario}`;
 
   const orders = route.orders || [];
+  const etas = await computeStopEtas(route);
   document.getElementById('stopsBody').innerHTML = orders.map((o, i) => {
     const isEdge = i === 0 || i === orders.length - 1;
     const tipo = o.kind === 'avulsa' ? 'Parada avulsa' : (o.modes||[]).join(' + ');
+    const horario = (etas && !isEdge) ? fmtTime(etas[i]) : '—';
     const statusHtml = isEdge ? '—' : `<select class="status-select" data-idx="${i}">
-      ${Object.entries(STOP_STATUS_LABELS).map(([k,l]) => `<option value="${k}" ${(o.status||'pendente')===k?'selected':''}>${l}</option>`).join('')}
+      <option value="pendente" ${(o.status||'pendente')==='pendente'?'selected':''}>Pendente</option>
+      <option value="entregue" ${(o.status||'pendente')!=='pendente'?'selected':''}>Finalizado</option>
     </select>`;
     return `<tr>
-      <td>${i+1}</td><td>${escapeHtml(o.name)}</td><td>${escapeHtml(tipo)}</td><td>${escapeHtml(o.address)}</td>
-      <td>${escapeHtml(timeWindowLabel(o.timeWindow)) || '—'}</td><td>${statusHtml}</td>
+      <td>${i+1}</td><td>${escapeHtml(o.name)}</td><td>${escapeHtml(tipo)}</td>
+      <td>${horario}</td><td>${statusHtml}</td>
     </tr>`;
   }).join('');
 
