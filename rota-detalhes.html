@@ -9,7 +9,10 @@
 <script src="assets/supabase-config.js"></script>
 <script>guardDashboardAuth();</script>
 <style>
-  .status-select{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;padding:3px 8px;border-radius:20px;border:1px solid var(--line);background:#fff;cursor:pointer;}
+  .status-btns{display:flex;gap:6px;}
+  .status-btn{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.03em;padding:4px 10px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;white-space:nowrap;}
+  .status-btn.active[data-status="entregue"]{border-color:var(--sage);background:#E9F1EA;color:var(--sage);}
+  .status-btn.active[data-status="nao_entregue"]{border-color:var(--danger);background:#FBEAE8;color:var(--danger);}
 </style>
 </head>
 <body>
@@ -118,10 +121,10 @@ async function init(){
     const isEdge = i === 0 || i === orders.length - 1;
     const tipo = o.kind === 'avulsa' ? 'Parada avulsa' : (o.modes||[]).join(' + ');
     const horario = (etas && !isEdge) ? fmtTime(etas[i]) : '—';
-    const statusHtml = isEdge ? '—' : `<select class="status-select" data-idx="${i}">
-      <option value="pendente" ${(o.status||'pendente')==='pendente'?'selected':''}>Pendente</option>
-      <option value="entregue" ${(o.status||'pendente')!=='pendente'?'selected':''}>Finalizado</option>
-    </select>`;
+    const statusHtml = isEdge ? '—' : `<div class="status-btns" data-idx="${i}">
+      <button type="button" class="status-btn${o.status==='entregue'?' active':''}" data-status="entregue">Concluído</button>
+      <button type="button" class="status-btn${o.status==='nao_entregue'?' active':''}" data-status="nao_entregue">Não entregue</button>
+    </div>`;
     return `<tr>
       <td>${i+1}</td><td>${escapeHtml(o.name)}</td><td>${escapeHtml(tipo)}</td>
       <td>${horario}</td><td>${statusHtml}</td>
@@ -131,10 +134,16 @@ async function init(){
   document.getElementById('obsInput').value = route.observacoes || '';
 }
 
-document.getElementById('stopsBody').addEventListener('change', async (e) => {
-  const sel = e.target.closest('.status-select');
-  if(!sel) return;
-  route.orders[parseInt(sel.dataset.idx)].status = sel.value;
+document.getElementById('stopsBody').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.status-btn');
+  if(!btn) return;
+  const idx = parseInt(btn.closest('.status-btns').dataset.idx);
+  const clickedStatus = btn.dataset.status;
+  const order = route.orders[idx];
+  order.status = (order.status === clickedStatus) ? 'pendente' : clickedStatus;
+  btn.parentElement.querySelectorAll('.status-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.status === order.status);
+  });
   await saveDoc(route.id, route);
   showToast('Status atualizado');
 });
