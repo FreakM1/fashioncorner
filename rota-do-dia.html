@@ -34,10 +34,10 @@
   .edit-actions{display:flex;gap:8px;margin-top:10px;}
   .edit-actions button{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--line);background:#fff;font-size:13px;font-weight:600;cursor:pointer;}
   .edit-actions .save-btn{background:var(--ink);color:#fff;border-color:var(--ink);}
-  .status-select{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;padding:3px 8px;border-radius:20px;border:1px solid var(--line);background:#fff;cursor:pointer;}
   .route-map{width:100%;height:340px;border:0;border-radius:14px;background:var(--paper-2);}
   .route-badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
-  .eta-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--sage);margin-top:2px;}
+  .eta-badge{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--sage);background:#E9F1EA;padding:4px 10px;border-radius:20px;margin-top:6px;}
+  .kpi-note{font-size:11px;color:var(--muted);margin-top:4px;}
 </style>
 </head>
 <body>
@@ -51,10 +51,10 @@
       <div id="finishedBanner" class="banner" style="display:none;background:#E9F1EA;border-color:var(--sage);"></div>
 
       <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Saída</div><div class="kpi-value" id="kpiSaida">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Retorno previsto</div><div class="kpi-value" id="kpiRetorno">—</div></div>
         <div class="kpi-card"><div class="kpi-label">Paradas</div><div class="kpi-value" id="kpiParadas">0</div></div>
-        <div class="kpi-card"><div class="kpi-label">Com horário</div><div class="kpi-value" id="kpiHorario">0</div></div>
-        <div class="kpi-card"><div class="kpi-label">Provas</div><div class="kpi-value" id="kpiProvas">0</div></div>
-        <div class="kpi-card"><div class="kpi-label">Km / tempo estimado</div><div class="kpi-value" id="kpiKm">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Km estimado</div><div class="kpi-value" id="kpiKm">—</div><div class="kpi-note" id="kpiTempo"></div></div>
       </div>
 
       <div class="grid2">
@@ -176,18 +176,38 @@ async function init(){
   renderMap();
 }
 
+// km/tempo total da ordem atual, a partir da mesma matriz usada pra
+// chegada (computeEtas) — reaproveita o que já foi buscado, então
+// reordenar (manual ou "Organizar rota") recalcula sem chamar a API de novo.
+function computeRouteTotals(){
+  if(!travelMatrix || orders.length < 2) return null;
+  let km = 0, min = 0;
+  for(let i = 1; i < orders.length; i++){
+    const a = matrixIndexById[orders[i-1]._id], b = matrixIndexById[orders[i]._id];
+    if(a === undefined || b === undefined) return null;
+    const dur = travelMatrix.durationMin[a][b], dist = travelMatrix.distanceMeters[a][b];
+    if(!isFinite(dur) || !isFinite(dist)) return null;
+    km += dist / 1000; min += dur;
+  }
+  return { km, min };
+}
+
 function renderKpis(){
   const intermediates = orders.length > 2 ? orders.slice(1, -1) : [];
   document.getElementById('kpiParadas').textContent = intermediates.length;
-  document.getElementById('kpiHorario').textContent = intermediates.filter(o => o.timeWindow && o.timeWindow.type !== 'none').length;
-  document.getElementById('kpiProvas').textContent = intermediates.filter(o => hasMode(o.modes,'PROVA NA HORA')).length;
-  const legs = (activeRoute && activeRoute.legs) || (latestRoute && JSON.stringify(latestRoute.orders) === JSON.stringify(orders) ? latestRoute.legs : null);
-  if(legs){
-    let km = 0, min = 0;
-    for(const l of legs){ km += (l.distanceMeters||0)/1000; min += (l.durationSec||0)/60; }
-    document.getElementById('kpiKm').textContent = km.toFixed(1).replace('.',',') + ' km · ' + Math.round(min) + 'min';
+  document.getElementById('kpiSaida').textContent = (dayConfig && dayConfig.saida) || '—';
+
+  const etas = computeEtas();
+  document.getElementById('kpiRetorno').textContent = (etas && orders.length > 1) ? fmtTime(etas[etas.length - 1]) : '—';
+
+  const totals = computeRouteTotals();
+  const kpiTempo = document.getElementById('kpiTempo');
+  if(totals){
+    document.getElementById('kpiKm').textContent = totals.km.toFixed(1).replace('.',',') + ' km';
+    kpiTempo.textContent = '~' + Math.round(totals.min) + ' min de deslocamento';
   } else {
     document.getElementById('kpiKm').textContent = '—';
+    kpiTempo.textContent = '';
   }
 }
 
@@ -256,23 +276,17 @@ function renderOrders(){
 
   ordersListEl.innerHTML = orders.map((o, i) => {
     if(i === editingIndex) return renderEditTicket(o, i);
-    const twLabel = timeWindowLabel(o.timeWindow);
-    const statusSelect = `<select class="status-select" data-idx="${i}">
-      ${Object.entries(STOP_STATUS_LABELS).map(([k,l]) => `<option value="${k}" ${o.status===k?'selected':''}>${l}</option>`).join('')}
-    </select>`;
     const cls = o.kind === 'avulsa' ? 'ticket avulsa' : 'ticket';
-    const meta = o.kind === 'avulsa'
-      ? (twLabel ? `<span class="pill">${escapeHtml(twLabel)}</span>` : '')
-      : `${(o.modes||[]).map(m => `<span class="pill">${escapeHtml(m)}</span>`).join('')}${twLabel ? `<span class="pill">${escapeHtml(twLabel)}</span>` : ''}`;
+    const meta = o.kind === 'avulsa' ? '' : (o.modes||[]).map(m => `<span class="pill">${escapeHtml(m)}</span>`).join('');
     const isEdge = (i === 0 || i === orders.length - 1);
-    const etaHtml = (etas && !isEdge) ? `<div class="eta-badge">chegada ~${fmtTime(etas[i])}</div>` : '';
+    const etaHtml = (etas && !isEdge) ? `<div class="eta-badge">Chegada prevista: ${fmtTime(etas[i])}</div>` : '';
     return `<div class="${cls}" data-order-id="${o._id}">
       <span class="drag-handle">⠿</span>
       <div class="num">${i+1}</div><div class="body">
       <div class="tname">${escapeHtml(o.name)}</div>
       <div class="taddr">${escapeHtml(o.address)}${o.complement ? ' · ' + escapeHtml(o.complement) : ''}</div>
       ${etaHtml}
-      <div class="tmeta">${meta}${statusSelect}</div>
+      ${meta ? `<div class="tmeta">${meta}</div>` : ''}
       ${o.obs ? `<div class="tobs">${escapeHtml(o.obs)}</div>` : ''}
       </div><div class="actions">
         <button class="mini-btn" onclick="openEditOrder(${i})" title="Editar">✎</button>
@@ -284,13 +298,6 @@ function renderOrders(){
 
   attachDragHandlers();
 }
-
-ordersListEl.addEventListener('change', (e) => {
-  const sel = e.target.closest('.status-select');
-  if(!sel) return;
-  orders[parseInt(sel.dataset.idx)].status = sel.value;
-  saveOrders();
-});
 
 function renderTwEditBlock(i, tw){
   tw = tw || { type:'none', time:null };
