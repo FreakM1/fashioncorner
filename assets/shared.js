@@ -106,7 +106,7 @@ async function computeRoutesRequest({ origin, destination, intermediates, optimi
       origin: { address: origin },
       destination: { address: destination },
       intermediates: intermediates.map(address => ({ address })),
-      travelMode: 'DRIVE',
+      travelMode: 'TWO_WHEELER', // moto — motoboy, não carro
       optimizeWaypointOrder: !!optimizeWaypointOrder
     })
   });
@@ -318,7 +318,7 @@ async function computeRouteMatrixRequest(addresses){
       'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
       'X-Goog-FieldMask': 'originIndex,destinationIndex,duration,distanceMeters,condition'
     },
-    body: JSON.stringify({ origins: waypoints, destinations: waypoints, travelMode: 'DRIVE' })
+    body: JSON.stringify({ origins: waypoints, destinations: waypoints, travelMode: 'TWO_WHEELER' }) // moto — motoboy, não carro
   });
   if(!res.ok){
     const errBody = await res.json().catch(() => null);
