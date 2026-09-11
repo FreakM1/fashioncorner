@@ -21,21 +21,6 @@
       </div>
 
       <div class="card">
-        <div class="card-title">Tempos padrão</div>
-        <p class="note" style="margin:0 0 8px;">Mesmos valores usados no Planejamento da Rota — editar aqui ou lá afeta o mesmo dado.</p>
-        <div class="two-col">
-          <div>
-            <label class="f-label">Tempo padrão por parada (min)</label>
-            <input type="number" id="tempoPadraoInput" min="0">
-          </div>
-          <div>
-            <label class="f-label">Tempo de prova na hora (min)</label>
-            <input type="number" id="tempoProvaInput" min="0">
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
         <div class="card-title">Parâmetros do motoboy</div>
         <p class="note" style="margin:0 0 8px;">Reservado pra configurações futuras (valor por km, veículo, turno etc.).</p>
         <label class="f-label">Nome</label>
@@ -67,10 +52,6 @@ async function init(){
   const settings = await loadDoc(SETTINGS_KEY, { lojaAddress: '', motoboyNome: '' });
   document.getElementById('lojaAddress').value = settings.lojaAddress || '';
   document.getElementById('motoboyNome').value = settings.motoboyNome || '';
-
-  const cfg = await loadDoc(configKey(), { tempoPadrao: 3, tempoProva: 20 });
-  document.getElementById('tempoPadraoInput').value = cfg.tempoPadrao;
-  document.getElementById('tempoProvaInput').value = cfg.tempoProva;
 }
 
 document.getElementById('saveBtn').addEventListener('click', async () => {
@@ -78,10 +59,6 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     lojaAddress: document.getElementById('lojaAddress').value.trim(),
     motoboyNome: document.getElementById('motoboyNome').value.trim()
   });
-  const cfg = await loadDoc(configKey(), { saida: '' });
-  cfg.tempoPadrao = parseInt(document.getElementById('tempoPadraoInput').value, 10) || 0;
-  cfg.tempoProva = parseInt(document.getElementById('tempoProvaInput').value, 10) || 0;
-  await saveDoc(configKey(), cfg);
   showToast('Configurações salvas');
 });
 

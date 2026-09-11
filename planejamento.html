@@ -47,22 +47,16 @@
           <div class="kpi-grid" style="margin-bottom:0;">
             <div class="kpi-card"><div class="kpi-label">Saída</div><div class="kpi-value" id="summarySaida"></div></div>
             <div class="kpi-card"><div class="kpi-label">Retorno previsto</div><div class="kpi-value" id="summaryRetorno"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Km da rota</div><div class="kpi-value" id="summaryDistancia"></div></div>
             <div class="kpi-card"><div class="kpi-label">Paradas</div><div class="kpi-value" id="summaryParadas"></div></div>
-            <div class="kpi-card"><div class="kpi-label">Provas na hora</div><div class="kpi-value" id="summaryProvas"></div></div>
-            <div class="kpi-card"><div class="kpi-label">Distância total</div><div class="kpi-value" id="summaryDistancia"></div></div>
-            <div class="kpi-card"><div class="kpi-label">Tempo dirigindo</div><div class="kpi-value" id="summaryDirigindo"></div></div>
-            <div class="kpi-card"><div class="kpi-label">Tempo das paradas padrão</div><div class="kpi-value" id="summaryParadasTempo"></div></div>
-            <div class="kpi-card"><div class="kpi-label">Tempo adicional das provas</div><div class="kpi-value" id="summaryProvasTempo"></div></div>
-            <div class="kpi-card"><div class="kpi-label">Tempo total parado</div><div class="kpi-value" id="summaryParado"></div></div>
-            <div class="kpi-card"><div class="kpi-label">Duração total da rota</div><div class="kpi-value" id="summaryTotal"></div></div>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title">Relatório por entrega</div>
+          <div class="card-title">Previsão por cliente</div>
           <div style="overflow-x:auto;">
             <table class="data-table">
-              <thead><tr><th>Ordem</th><th>Cliente</th><th>Chegada estimada</th><th>Horário</th></tr></thead>
+              <thead><tr><th>Cliente</th><th>Horário aproximado de chegada</th></tr></thead>
               <tbody id="reportBody"></tbody>
             </table>
           </div>
@@ -90,20 +84,9 @@ let currentConfig = { saida:'', tempoPadrao:3, tempoProva:20 };
 const toast = document.getElementById('toast');
 function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
 
-function fmtTime(minutesFromMidnight){
-  const totalMin = Math.round(minutesFromMidnight);
-  const h = Math.floor(totalMin / 60) % 24;
-  const m = ((totalMin % 60) + 60) % 60;
-  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-}
-// timeToMinutes, serviceTimeFor e violatesWindow ficam em assets/shared.js —
-// fonte única, também usada pela heurística de "Organizar rota".
-function fmtDuration(totalMin){
-  const h = Math.floor(totalMin/60);
-  const m = Math.round(totalMin%60);
-  if(h<=0) return m + 'min';
-  return h + 'h' + String(m).padStart(2,'0');
-}
+// fmtTime, timeToMinutes, serviceTimeFor e violatesWindow ficam em
+// assets/shared.js — fonte única, também usada pela Rota do Dia (heurística
+// de "Organizar rota" e previsão de chegada ao lado de cada parada).
 function fmtKm(meters){ return (meters/1000).toFixed(1).replace('.', ',') + ' km'; }
 
 async function init(){
@@ -216,7 +199,7 @@ function buildReport(ordersSnapshot, legs, cfg){
     const tw = o.timeWindow;
     const violated = violatesWindow(tw, eta);
     rows.push({
-      order: i+1, name: o.name,
+      order: i+1, name: o.name, isEdge,
       etaLabel: fmtTime(eta), timeWindowLabel: timeWindowLabel(tw), violated
     });
 
@@ -246,21 +229,13 @@ function buildReport(ordersSnapshot, legs, cfg){
 function renderReport(report){
   document.getElementById('summarySaida').textContent = report.saida;
   document.getElementById('summaryRetorno').textContent = report.retornoLabel;
-  document.getElementById('summaryParadas').textContent = report.paradas;
-  document.getElementById('summaryProvas').textContent = report.provaCount;
   document.getElementById('summaryDistancia').textContent = fmtKm(report.totalDistance);
-  document.getElementById('summaryDirigindo').textContent = fmtDuration(report.totalDriving);
-  document.getElementById('summaryParadasTempo').textContent = fmtDuration(report.totalService);
-  document.getElementById('summaryProvasTempo').textContent = fmtDuration(report.totalProva);
-  document.getElementById('summaryParado').textContent = fmtDuration(report.totalParado);
-  document.getElementById('summaryTotal').textContent = fmtDuration(report.totalRota);
+  document.getElementById('summaryParadas').textContent = report.paradas;
 
-  document.getElementById('reportBody').innerHTML = report.rows.map(r => `
-    <tr class="${r.violated ? 'violated' : ''}" style="${r.violated ? 'background:#FBF0F2;' : ''}">
-      <td>${r.order}</td>
+  document.getElementById('reportBody').innerHTML = report.rows.filter(r => !r.isEdge).map(r => `
+    <tr style="${r.violated ? 'background:#FBF0F2;' : ''}">
       <td>${r.name}</td>
       <td>${r.etaLabel}</td>
-      <td>${r.timeWindowLabel || '—'}</td>
     </tr>`).join('');
 
   document.getElementById('reportSection').style.display = 'block';

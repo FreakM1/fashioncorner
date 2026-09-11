@@ -34,6 +34,7 @@
   .status-select{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;padding:3px 8px;border-radius:20px;border:1px solid var(--line);background:#fff;cursor:pointer;}
   .route-map{width:100%;height:340px;border:0;border-radius:14px;background:var(--paper-2);}
   .route-badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+  .eta-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--sage);margin-top:2px;}
 </style>
 </head>
 <body>
@@ -60,7 +61,7 @@
               <button class="btn btn-outline" id="organizeBtn">Organizar rota</button>
               <button class="btn btn-ghost" id="copyBtn">Copiar para motoboy</button>
               <button class="btn btn-ghost" id="mapsBtn">Abrir no Maps</button>
-              <button class="btn btn-dark" id="finalizeBtn" style="margin-left:auto;">Finalizar rota</button>
+              <button class="btn btn-dark" id="finalizeBtn" style="margin-left:auto;">Concluir rota</button>
             </div>
             <div id="ordersList"></div>
             <div id="emptyOrders" class="empty-state" style="display:none;">
@@ -95,6 +96,9 @@ let orders = [];
 let activeRoute = null;   // rota reaberta pra edição (status em_andamento), se houver
 let latestRoute = null;   // última rota do dia (finalizada ou em_andamento)
 let editingIndex = null;
+let dayConfig = null;         // config do Planejamento (saída/tempo padrão/prova) — só leitura aqui
+let travelMatrix = null;      // matriz de tempos entre todos os pontos, pra recalcular chegada sem chamar a API de novo
+let matrixIndexById = {};
 
 const toast = document.getElementById('toast');
 function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
@@ -106,20 +110,59 @@ const ordersListEl = document.getElementById('ordersList');
 const organizeBtn = document.getElementById('organizeBtn');
 const finalizeBtn = document.getElementById('finalizeBtn');
 
+// matriz de tempos entre todos os pontos da rota atual — buscada uma vez
+// (no carregamento e depois de organizar) e reaproveitada localmente pra
+// recalcular a chegada estimada a qualquer momento (arrastar, editar,
+// remover), sem precisar chamar a API de novo.
+async function refreshTravelMatrix(){
+  travelMatrix = null; matrixIndexById = {};
+  if(!hasGoogleMapsKey() || orders.length < 2) return;
+  try {
+    const addresses = orders.map(o => o.address);
+    orders.forEach((o, i) => { matrixIndexById[o._id] = i; });
+    travelMatrix = await computeRouteMatrixRequest(addresses);
+  } catch(e){ travelMatrix = null; }
+}
+
+// horário de saída + trechos + tempo de cada parada + tempo de prova —
+// mesma fórmula do Planejamento (buildReport), aqui devolvendo só os
+// horários de chegada em cada posição da ordem atual.
+function computeEtas(){
+  if(!dayConfig || !dayConfig.saida || !travelMatrix) return null;
+  let t = timeToMinutes(dayConfig.saida);
+  const etas = [];
+  for(let i = 0; i < orders.length; i++){
+    if(i > 0){
+      const a = matrixIndexById[orders[i-1]._id], b = matrixIndexById[orders[i]._id];
+      if(a === undefined || b === undefined || !travelMatrix.durationMin[a]) return null;
+      const dur = travelMatrix.durationMin[a][b];
+      if(!isFinite(dur)) return null;
+      t += dur;
+    }
+    etas.push(t);
+    const isEdge = (i === 0 || i === orders.length - 1);
+    if(!isEdge) t += serviceTimeFor(orders[i], dayConfig);
+  }
+  return etas;
+}
+
 async function init(){
   await ensureAuth();
   const today = dateSuffix();
   await loadOrders();
+  if(ensureOrderIds()) await saveOrders();
+  dayConfig = await loadDoc(configKey(), null);
+  await refreshTravelMatrix();
   activeRoute = await findActiveRoute(today);
   const routes = await loadRoutesForDate(today);
   latestRoute = routes.length ? routes[routes.length - 1] : null;
 
   if(activeRoute){
     document.getElementById('reopenedBadge').style.display = 'block';
-    document.getElementById('reopenedBadge').textContent = `Editando Rota ${activeRoute.seq} (reaberta) — finalizar vai atualizar esse mesmo registro.`;
+    document.getElementById('reopenedBadge').textContent = `Editando Rota ${activeRoute.seq} (reaberta) — concluir vai atualizar esse mesmo registro.`;
   } else if(latestRoute && latestRoute.status === 'finalizada' && orders.length === 0){
     document.getElementById('finishedBanner').style.display = 'block';
-    document.getElementById('finishedBanner').innerHTML = `Rota ${latestRoute.seq} de hoje já foi finalizada (${summarizeRoute(latestRoute).paradas} paradas). ` +
+    document.getElementById('finishedBanner').innerHTML = `Rota ${latestRoute.seq} de hoje já foi concluída (${summarizeRoute(latestRoute).paradas} paradas). ` +
       `<button class="btn btn-outline" id="reopenBtn" style="margin-left:8px;padding:6px 12px;font-size:12px;">Reabrir para editar</button>`;
     document.getElementById('reopenBtn').addEventListener('click', async () => {
       await reopenRoute(latestRoute);
@@ -203,6 +246,8 @@ function renderOrders(){
   organizeBtn.disabled = orders.length < 3;
   finalizeBtn.disabled = orders.length === 0;
 
+  const etas = computeEtas();
+
   ordersListEl.innerHTML = orders.map((o, i) => {
     if(i === editingIndex) return renderEditTicket(o, i);
     const twLabel = timeWindowLabel(o.timeWindow);
@@ -213,11 +258,14 @@ function renderOrders(){
     const meta = o.kind === 'avulsa'
       ? (twLabel ? `<span class="pill">${twLabel}</span>` : '')
       : `${(o.modes||[]).map(m => `<span class="pill">${m}</span>`).join('')}${twLabel ? `<span class="pill">${twLabel}</span>` : ''}`;
+    const isEdge = (i === 0 || i === orders.length - 1);
+    const etaHtml = (etas && !isEdge) ? `<div class="eta-badge">chegada ~${fmtTime(etas[i])}</div>` : '';
     return `<div class="${cls}" data-order-id="${o._id}">
       <span class="drag-handle">⠿</span>
       <div class="num">${i+1}</div><div class="body">
       <div class="tname">${o.name}</div>
       <div class="taddr">${o.address}${o.complement ? ' · ' + o.complement : ''}</div>
+      ${etaHtml}
       <div class="tmeta">${meta}${statusSelect}</div>
       ${o.obs ? `<div class="tobs">${o.obs}</div>` : ''}
       </div><div class="actions">
@@ -449,12 +497,18 @@ async function organizeRoute(){
   try {
     let orderedIntermediates, violationCount = 0;
     if(useTimeAware){
-      const addresses = [origin.address, ...intermediates.map(o => o.address), destination.address];
+      const pointsBefore = [origin, ...intermediates, destination];
+      const addresses = pointsBefore.map(o => o.address);
       const matrix = await computeRouteMatrixRequest(addresses);
       const saidaMin = timeToMinutes(dayConfig.saida);
       const { seq, score } = solveTimeAwareOrder(intermediates, matrix, dayConfig, saidaMin);
       orderedIntermediates = seq.map(idx => intermediates[idx]);
       violationCount = score.violations;
+      // a matriz já buscada vale pra qualquer ordem (é indexada por _id,
+      // não por posição) — reaproveita pra previsão de chegada, sem buscar de novo.
+      travelMatrix = matrix;
+      matrixIndexById = {};
+      pointsBefore.forEach((o, i) => { matrixIndexById[o._id] = i; });
     } else {
       const data = await computeRoutesRequest({
         origin: origin.address, destination: destination.address,
@@ -465,6 +519,7 @@ async function organizeRoute(){
       orderedIntermediates = Array.isArray(order) ? order.map(idx => intermediates[idx]) : intermediates;
     }
     orders = [origin, ...orderedIntermediates, destination];
+    if(!useTimeAware) await refreshTravelMatrix();
     renderOrders();
     await saveOrders();
     showToast(violationCount > 0
@@ -528,14 +583,17 @@ function onDragEnd(){
   saveOrders();
 }
 
-// ---------- FINALIZAR ROTA ----------
+// ---------- CONCLUIR ROTA ----------
+// Marca a rota como concluída, salva os dados finais (km, paradas, tipos
+// de atendimento, status de cada entrega) e registra data/hora da
+// conclusão — é esse registro que passa a aparecer no Histórico de Rotas.
 finalizeBtn.addEventListener('click', async () => {
   if(orders.length === 0) return;
   finalizeBtn.disabled = true;
   try {
     let legs = null;
     if(hasGoogleMapsKey() && orders.length >= 2){
-      try { legs = await fetchRouteLegs(orders); } catch(e){ /* finaliza sem km, avisa depois */ }
+      try { legs = await fetchRouteLegs(orders); } catch(e){ /* conclui sem km, avisa depois */ }
     }
     const today = dateSuffix();
     const route = await finalizeRouteRecord(today, JSON.parse(JSON.stringify(orders)), legs, activeRoute);
@@ -543,12 +601,12 @@ finalizeBtn.addEventListener('click', async () => {
     await saveDoc(todayKey(), orders);
     activeRoute = null;
     latestRoute = route;
-    showToast(legs ? `Rota ${route.seq} finalizada!` : `Rota ${route.seq} finalizada (sem km — configure a chave do Maps pra calcular)`);
+    showToast(legs ? `Rota ${route.seq} concluída!` : `Rota ${route.seq} concluída (sem km — configure a chave do Maps pra calcular)`);
     renderOrders();
     renderKpis();
     renderMap();
     document.getElementById('finishedBanner').style.display = 'block';
-    document.getElementById('finishedBanner').innerHTML = `Rota ${route.seq} de hoje finalizada. ` +
+    document.getElementById('finishedBanner').innerHTML = `Rota ${route.seq} de hoje concluída. ` +
       `<button class="btn btn-outline" id="reopenBtn" style="margin-left:8px;padding:6px 12px;font-size:12px;">Reabrir para editar</button>`;
     document.getElementById('reopenedBadge').style.display = 'none';
     document.getElementById('reopenBtn').addEventListener('click', async () => {
@@ -557,7 +615,7 @@ finalizeBtn.addEventListener('click', async () => {
       location.reload();
     });
   } catch(e){
-    showToast('Não foi possível finalizar: ' + e.message);
+    showToast('Não foi possível concluir a rota: ' + e.message);
   } finally {
     finalizeBtn.disabled = false;
   }

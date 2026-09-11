@@ -240,6 +240,22 @@ async function loadRoutesInRange(startStr, endStr){
   return all;
 }
 
+// só as rotas concluídas — usado pelo Histórico e pelo card de "última rota
+// concluída" do Dashboard. O Histórico só deve considerar a rota a partir
+// do momento em que ela for concluída, nunca enquanto está em andamento.
+async function loadFinalizedRoutesInRange(startStr, endStr){
+  return (await loadRoutesInRange(startStr, endStr)).filter(r => r.status === ROUTE_STATUS.FINALIZADA);
+}
+
+// "HH:MM" a partir de minutos desde a meia-noite — usado pela previsão de
+// chegada na Rota do Dia e no relatório do Planejamento.
+function fmtTime(minutesFromMidnight){
+  const totalMin = Math.round(minutesFromMidnight);
+  const h = Math.floor(totalMin / 60) % 24;
+  const m = ((totalMin % 60) + 60) % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
 // resumo agregado de uma rota — paradas por tipo, não entregues, km/tempo
 // (quando já tiver legs calculados). Usado pelo Dashboard, Rota do Dia,
 // Histórico e Detalhes — não duplicar essa conta em cada página.

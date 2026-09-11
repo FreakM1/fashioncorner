@@ -84,10 +84,10 @@ async function init(){
   document.getElementById('dEntregas').textContent = s.entregas;
   document.getElementById('dNaoEntregues').textContent = s.naoEntregues;
 
-  const statusLabel = route.status === 'finalizada' ? 'Finalizada' : 'Em andamento';
+  const statusLabel = route.status === 'finalizada' ? 'Concluída' : 'Em andamento';
   document.getElementById('summaryLine').innerHTML =
     `Data: <strong>${route.date.split('-').reverse().join('/')}</strong> · Rota ${route.seq} · Status: <strong>${statusLabel}</strong>` +
-    (route.finalizedAt ? ` · Finalizada às ${new Date(route.finalizedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}` : '') +
+    (route.finalizedAt ? ` · Concluída às ${new Date(route.finalizedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}` : '') +
     `<br>Trocas: ${s.trocas} · Provas: ${s.provas} · Retiradas: ${s.retiradas} · Com horário definido: ${s.comHorario}`;
 
   const orders = route.orders || [];
