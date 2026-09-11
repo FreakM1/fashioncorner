@@ -54,33 +54,35 @@
     <a href="index.html" class="link-btn">← Pedido Rápido</a>
   </header>
 
+  <div id="staleBanner" class="banner" style="display:none;">
+    A rota mudou no Pedido Rápido desde a última finalização. O relatório abaixo pode estar desatualizado —
+    volte lá, reorganize e finalize de novo, depois recalcule aqui.
+  </div>
+
+  <div class="card">
+    <div class="section-title">Configuração do dia</div>
+    <p class="note" style="margin:0 0 8px;">Essa configuração vale pro dia inteiro — inclusive pro botão
+      "Organizar rota" no Pedido Rápido, quando algum pedido tem horário definido.</p>
+    <label class="f-label">Horário de saída do motoboy</label>
+    <input type="time" id="saidaInput" style="max-width:160px;">
+    <div class="two-col" style="margin-top:8px;">
+      <div>
+        <label class="f-label">Tempo padrão por parada (minutos)</label>
+        <input type="number" id="tempoPadraoInput" min="0">
+      </div>
+      <div>
+        <label class="f-label">Tempo de prova na hora (minutos)</label>
+        <input type="number" id="tempoProvaInput" min="0">
+      </div>
+    </div>
+    <button class="add-btn" id="calcBtn">Calcular planejamento</button>
+  </div>
+
   <div id="emptyState" class="card empty-state" style="display:none;">
     Nenhuma rota finalizada ainda. Vá até o Pedido Rápido, organize a rota e clique em "Finalizar rota".
   </div>
 
   <div id="calcSection" style="display:none;">
-    <div id="staleBanner" class="banner" style="display:none;">
-      A rota mudou no Pedido Rápido desde a última finalização. O relatório abaixo pode estar desatualizado —
-      volte lá, reorganize e finalize de novo, depois recalcule aqui.
-    </div>
-
-    <div class="card">
-      <div class="section-title">Configuração do dia</div>
-      <label class="f-label">Horário de saída do motoboy</label>
-      <input type="time" id="saidaInput" style="max-width:160px;">
-      <div class="two-col" style="margin-top:8px;">
-        <div>
-          <label class="f-label">Tempo padrão por parada (minutos)</label>
-          <input type="number" id="tempoPadraoInput" min="0">
-        </div>
-        <div>
-          <label class="f-label">Tempo de prova na hora (minutos)</label>
-          <input type="number" id="tempoProvaInput" min="0">
-        </div>
-      </div>
-      <button class="add-btn" id="calcBtn">Calcular planejamento</button>
-    </div>
-
     <div id="reportSection" style="display:none;">
       <div class="card">
         <div class="section-title">Resumo da rota</div>
@@ -129,11 +131,9 @@ function fmtTime(minutesFromMidnight){
   const m = ((totalMin % 60) + 60) % 60;
   return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 }
-function timeToMinutes(hhmm){
-  if(!hhmm) return null;
-  const [h,m] = hhmm.split(':').map(Number);
-  return h*60+m;
-}
+// timeToMinutes, serviceTimeFor e violatesWindow ficam em assets/shared.js
+// — fonte única, também usada pela heurística de "Organizar rota" no
+// Pedido Rápido, pra nunca discordarem sobre o que conta como violação.
 function fmtDuration(totalMin){
   const h = Math.floor(totalMin/60);
   const m = Math.round(totalMin%60);
@@ -141,9 +141,6 @@ function fmtDuration(totalMin){
   return h + 'h' + String(m).padStart(2,'0');
 }
 function fmtKm(meters){ return (meters/1000).toFixed(1).replace('.', ',') + ' km'; }
-function serviceTimeFor(o, cfg){
-  return cfg.tempoPadrao + (hasMode(o.modes, 'PROVA NA HORA') ? cfg.tempoProva : 0);
-}
 
 async function init(){
   await ensureAuth();
@@ -265,12 +262,7 @@ function buildReport(ordersSnapshot, legs, cfg){
     }
     const isEdge = (i === 0 || i === ordersSnapshot.length - 1);
     const tw = o.timeWindow;
-    let violated = false;
-    if(tw && tw.type !== 'none' && tw.time){
-      const limit = timeToMinutes(tw.time);
-      if(tw.type === 'before' && eta > limit) violated = true;
-      if(tw.type === 'after' && eta < limit) violated = true;
-    }
+    const violated = violatesWindow(tw, eta);
     rows.push({
       order: i+1, name: o.name,
       etaLabel: fmtTime(eta), timeWindowLabel: timeWindowLabel(tw), violated

@@ -127,3 +127,61 @@ function timeWindowLabel(tw){
   if(!tw || tw.type === 'none' || !tw.time) return '';
   return (tw.type === 'before' ? 'Antes de ' : 'Depois de ') + tw.time;
 }
+
+// ---------- Matemática de horário compartilhada ----------
+// Usada tanto pela heurística de "Organizar rota" (index.html, que precisa
+// simular chegadas pra decidir a ordem) quanto pelo relatório do
+// Planejamento (planejamento.html, que só reporta) — fonte única, pra as
+// duas partes nunca discordarem sobre o que conta como violação.
+function timeToMinutes(hhmm){
+  if(!hhmm) return null;
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+function serviceTimeFor(o, cfg){
+  return cfg.tempoPadrao + (hasMode(o.modes, 'PROVA NA HORA') ? cfg.tempoProva : 0);
+}
+function violatesWindow(tw, etaMin){
+  if(!tw || tw.type === 'none' || !tw.time) return false;
+  const limit = timeToMinutes(tw.time);
+  if(tw.type === 'before') return etaMin > limit;
+  if(tw.type === 'after') return etaMin < limit;
+  return false;
+}
+
+// Chamada à Route Matrix da Routes API — devolve tempo/distância entre
+// TODOS os pares de um conjunto de endereços numa única requisição (em vez
+// de uma chamada por par). Usada pela heurística de "Organizar rota" que
+// precisa considerar horários (computeRoutes com optimizeWaypointOrder não
+// suporta janela de tempo, então a ordenação nesse caso é resolvida aqui
+// no cliente, com esses tempos como insumo). Limite do Google: 25×25
+// pontos por requisição.
+async function computeRouteMatrixRequest(addresses){
+  const waypoints = addresses.map(address => ({ waypoint: { address } }));
+  const res = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+      'X-Goog-FieldMask': 'originIndex,destinationIndex,duration,distanceMeters,condition'
+    },
+    body: JSON.stringify({ origins: waypoints, destinations: waypoints, travelMode: 'DRIVE' })
+  });
+  if(!res.ok){
+    const errBody = await res.json().catch(() => null);
+    throw new Error(errBody?.error?.message || `Erro ${res.status} na Route Matrix API`);
+  }
+  const elements = await res.json();
+  const n = addresses.length;
+  const durationMin = Array.from({length: n}, () => new Array(n).fill(Infinity));
+  const distanceMeters = Array.from({length: n}, () => new Array(n).fill(Infinity));
+  for(let i = 0; i < n; i++){ durationMin[i][i] = 0; distanceMeters[i][i] = 0; }
+  for(const el of elements){
+    if(el.condition && el.condition !== 'ROUTE_EXISTS') continue;
+    const i = el.originIndex ?? 0;
+    const j = el.destinationIndex ?? 0;
+    durationMin[i][j] = (parseInt(el.duration, 10) || 0) / 60;
+    distanceMeters[i][j] = el.distanceMeters || 0;
+  }
+  return { durationMin, distanceMeters };
+}

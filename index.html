@@ -892,6 +892,100 @@ function moveOrder(i, dir){ const j=i+dir; if(j<0||j>=orders.length) return; [or
 function removeOrder(i){ orders.splice(i,1); renderOrders(); saveOrders(); }
 
 // ---------- ORGANIZAR ROTA (Google Routes API) ----------
+// Quando nenhum pedido intermediário tem horário (Antes de/Depois de),
+// segue exatamente como sempre: computeRoutes com optimizeWaypointOrder,
+// que só minimiza distância/tempo (a Routes API não tem noção de janela
+// de horário). Quando existe horário, computeRoutes não ajuda — em vez
+// disso buscamos a matriz de tempos entre todos os pontos
+// (computeRouteMatrix, uma chamada só) e resolvemos a ordem aqui mesmo,
+// com uma heurística que tenta respeitar os horários, não só checar depois.
+
+// simula a rota inteira pra uma sequência candidata de intermediários e
+// conta quantas paradas chegariam fora do horário definido.
+function evaluateSequence(seq, matrix, intermediates, cfg, saidaMin){
+  const n = intermediates.length;
+  let t = saidaMin;
+  let totalDist = 0;
+  let violations = 0;
+  let lastIdx = 0; // 0 = origem na matriz
+  for(const idx of seq){
+    const matIdx = idx + 1; // +1 porque a posição 0 da matriz é a origem
+    t += matrix.durationMin[lastIdx][matIdx];
+    totalDist += matrix.distanceMeters[lastIdx][matIdx];
+    const o = intermediates[idx];
+    if(violatesWindow(o.timeWindow, t)) violations++;
+    t += serviceTimeFor(o, cfg);
+    lastIdx = matIdx;
+  }
+  const destIdx = n + 1;
+  t += matrix.durationMin[lastIdx][destIdx];
+  totalDist += matrix.distanceMeters[lastIdx][destIdx];
+  return { violations, totalDist, finalTime: t };
+}
+
+// menos violações sempre ganha; entre sequências com o mesmo número de
+// violações, a de menor distância total ganha.
+function betterScore(a, b){
+  if(a.violations !== b.violations) return a.violations < b.violations;
+  return a.totalDist < b.totalDist - 1e-6;
+}
+
+// constrói uma ordem tentando respeitar os horários (cheapest insertion
+// avaliando violações + distância) e depois refina com or-opt (mover uma
+// parada sozinha) e 2-opt (inverter um trecho), só aceitando trocas que
+// não piorem o resultado.
+function solveTimeAwareOrder(intermediates, matrix, cfg, saidaMin){
+  let remaining = intermediates.map((_, i) => i);
+  let seq = [];
+
+  while(remaining.length > 0){
+    let bestCand = null, bestPos = null, bestScore = null;
+    for(const cand of remaining){
+      for(let pos = 0; pos <= seq.length; pos++){
+        const trial = seq.slice(0, pos).concat([cand], seq.slice(pos));
+        const score = evaluateSequence(trial, matrix, intermediates, cfg, saidaMin);
+        if(bestScore === null || betterScore(score, bestScore)){
+          bestScore = score; bestCand = cand; bestPos = pos;
+        }
+      }
+    }
+    seq.splice(bestPos, 0, bestCand);
+    remaining = remaining.filter(x => x !== bestCand);
+  }
+
+  let improved = true;
+  let iterations = 0;
+  const MAX_ITER = 300;
+  while(improved && iterations < MAX_ITER){
+    improved = false;
+    iterations++;
+    const currentScore = evaluateSequence(seq, matrix, intermediates, cfg, saidaMin);
+
+    for(let j = 0; j < seq.length && !improved; j++){
+      for(let i = 0; i <= seq.length; i++){
+        if(i === j || i === j + 1) continue;
+        const item = seq[j];
+        const withoutItem = seq.slice(0, j).concat(seq.slice(j + 1));
+        const insertAt = i > j ? i - 1 : i;
+        const trial = withoutItem.slice(0, insertAt).concat([item], withoutItem.slice(insertAt));
+        const score = evaluateSequence(trial, matrix, intermediates, cfg, saidaMin);
+        if(betterScore(score, currentScore)){ seq = trial; improved = true; break; }
+      }
+    }
+    if(improved) continue;
+
+    for(let i = 0; i < seq.length - 1 && !improved; i++){
+      for(let j = i + 1; j < seq.length; j++){
+        const trial = seq.slice(0, i).concat(seq.slice(i, j + 1).reverse(), seq.slice(j + 1));
+        const score = evaluateSequence(trial, matrix, intermediates, cfg, saidaMin);
+        if(betterScore(score, currentScore)){ seq = trial; improved = true; break; }
+      }
+    }
+  }
+
+  return { seq, score: evaluateSequence(seq, matrix, intermediates, cfg, saidaMin) };
+}
+
 async function organizeRoute(){
   if(!hasGoogleMapsKey()){
     showToast('Configure a variável de ambiente GOOGLE_MAPS_API_KEY no servidor');
@@ -912,25 +1006,55 @@ async function organizeRoute(){
     return;
   }
 
+  const hasAnyWindow = intermediates.some(o => o.timeWindow && o.timeWindow.type !== 'none');
+  let dayConfig = null;
+  if(hasAnyWindow){
+    dayConfig = await loadDoc(configKey(), null);
+    if(!dayConfig || !dayConfig.saida){
+      showToast('Configure o horário de saída no Planejamento da Rota antes de organizar — é necessário pra respeitar os horários dos pedidos');
+      return;
+    }
+  }
+
+  const totalPoints = intermediates.length + 2;
+  const useTimeAware = hasAnyWindow && totalPoints <= 25;
+  if(hasAnyWindow && totalPoints > 25){
+    showToast('Muitas paradas pra considerar os horários automaticamente (máx. 25) — organizando só por distância');
+  }
+
   organizeBtn.disabled = true;
   const originalLabel = organizeBtn.textContent;
   organizeBtn.textContent = 'Organizando...';
 
   try {
-    const data = await computeRoutesRequest({
-      origin: origin.address,
-      destination: destination.address,
-      intermediates: intermediates.map(o => o.address),
-      optimizeWaypointOrder: true,
-      fieldMask: 'routes.optimizedIntermediateWaypointIndex'
-    });
-    const order = data.routes?.[0]?.optimizedIntermediateWaypointIndex;
-    const orderedIntermediates = Array.isArray(order) ? order.map(idx => intermediates[idx]) : intermediates;
+    let orderedIntermediates;
+    let violationCount = 0;
+
+    if(useTimeAware){
+      const addresses = [origin.address, ...intermediates.map(o => o.address), destination.address];
+      const matrix = await computeRouteMatrixRequest(addresses);
+      const saidaMin = timeToMinutes(dayConfig.saida);
+      const { seq, score } = solveTimeAwareOrder(intermediates, matrix, dayConfig, saidaMin);
+      orderedIntermediates = seq.map(idx => intermediates[idx]);
+      violationCount = score.violations;
+    } else {
+      const data = await computeRoutesRequest({
+        origin: origin.address,
+        destination: destination.address,
+        intermediates: intermediates.map(o => o.address),
+        optimizeWaypointOrder: true,
+        fieldMask: 'routes.optimizedIntermediateWaypointIndex'
+      });
+      const order = data.routes?.[0]?.optimizedIntermediateWaypointIndex;
+      orderedIntermediates = Array.isArray(order) ? order.map(idx => intermediates[idx]) : intermediates;
+    }
 
     orders = [origin, ...orderedIntermediates, destination];
     renderOrders();
     saveOrders();
-    showToast('Rota organizada!');
+    showToast(violationCount > 0
+      ? `Rota organizada — ${violationCount} pedido(s) ainda fora do horário (veja o Planejamento da Rota)`
+      : 'Rota organizada!');
   } catch(e){
     showToast('Não foi possível organizar a rota: ' + e.message);
   } finally {
