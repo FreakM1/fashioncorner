@@ -9,11 +9,12 @@
 <script src="assets/supabase-config.js"></script>
 <script>guardDashboardAuth();</script>
 <style>
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
-  @media (max-width:900px){.grid2{grid-template-columns:1fr;}}
-  .bar-chart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:6px;}
+  .dash-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start;}
+  @media (max-width:980px){.dash-grid{grid-template-columns:1fr;}}
+  .bar-chart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:6px;padding-bottom:10px;border-bottom:1px solid var(--line);}
   .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
-  .bar{width:100%;max-width:26px;background:var(--wine);border-radius:5px 5px 0 0;min-height:2px;}
+  .bar{width:100%;max-width:26px;background:var(--wine);border-radius:5px 5px 0 0;min-height:2px;transition:background .12s;}
+  .bar-col:hover .bar{background:var(--wine-dark);}
   .bar-day{font-size:10.5px;color:var(--muted);margin-top:6px;font-family:'Poppins',sans-serif;font-weight:500;}
 </style>
 </head>
@@ -25,25 +26,62 @@
     <div class="page">
 
       <div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-label">Pedidos hoje</div><div class="kpi-value" id="kpiPedidos">0</div><div class="kpi-delta" id="kpiPedidosDelta"></div></div>
-        <div class="kpi-card"><div class="kpi-label">Entregues</div><div class="kpi-value" id="kpiEntregues">0</div><div class="kpi-delta" id="kpiEntreguesDelta"></div></div>
-        <div class="kpi-card"><div class="kpi-label">Pendentes</div><div class="kpi-value" id="kpiPendentes">0</div><div class="kpi-delta" id="kpiPendentesDelta"></div></div>
-        <div class="kpi-card"><div class="kpi-label">Km rodados hoje</div><div class="kpi-value" id="kpiKm">0 km</div></div>
+        <div class="kpi-card">
+          <div class="kpi-card-top"><span class="kpi-icon-chip">&#9679;</span></div>
+          <div class="kpi-value" id="kpiPedidos">0</div>
+          <div class="kpi-label">Pedidos hoje</div>
+          <div class="kpi-delta" id="kpiPedidosDelta"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-top"><span class="kpi-icon-chip kpi-icon-chip--sage">&#10003;</span></div>
+          <div class="kpi-value" id="kpiEntregues">0</div>
+          <div class="kpi-label">Entregues</div>
+          <div class="kpi-delta" id="kpiEntreguesDelta"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-top"><span class="kpi-icon-chip kpi-icon-chip--gold">&#9888;</span></div>
+          <div class="kpi-value" id="kpiPendentes">0</div>
+          <div class="kpi-label">Pendentes</div>
+          <div class="kpi-delta" id="kpiPendentesDelta"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-top"><span class="kpi-icon-chip kpi-icon-chip--info">KM</span></div>
+          <div class="kpi-value" id="kpiKm">0 km</div>
+          <div class="kpi-label">Km rodados hoje</div>
+        </div>
       </div>
 
-      <div class="grid2">
+      <div class="dash-grid">
         <div class="card">
-          <div class="card-title">Rota do dia</div>
+          <div class="card-header">
+            <span class="card-icon-chip">&#128717;</span>
+            <div>
+              <div class="card-title">Rota do dia</div>
+              <div class="card-subtitle">Status da operação de hoje</div>
+            </div>
+          </div>
           <div id="rotaAtualBody"></div>
         </div>
         <div class="card">
-          <div class="card-title">Resumo da semana</div>
+          <div class="card-header">
+            <span class="card-icon-chip">&#128202;</span>
+            <div>
+              <div class="card-title">Resumo da semana</div>
+              <div class="card-subtitle">Entregas concluídas por dia</div>
+            </div>
+          </div>
           <div class="bar-chart" id="weekChart"></div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Última rota finalizada</div>
+        <div class="card-header">
+          <span class="card-icon-chip">&#127937;</span>
+          <div>
+            <div class="card-title">Última rota finalizada</div>
+            <div class="card-subtitle">Resumo da rota mais recente concluída</div>
+          </div>
+        </div>
         <div id="lastRouteBody"></div>
       </div>
 
