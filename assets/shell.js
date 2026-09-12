@@ -3,10 +3,11 @@
 // `primaryAction` é opcional (ex: { label, href } pra um botão no topo) —
 // páginas que não passam esse campo continuam exatamente como antes.
 //
-// Estrutura preparada para o menu futuro (Operação / Gestão / Administração).
-// Itens cujas páginas ainda não existem ficam com `disabled: true` — aparecem
-// esmaecidos, sem href, só pra dar contexto do que vem por aí, sem nunca
-// gerar link quebrado.
+// Estrutura em seções (Operação / Gestão / Administração). Os módulos
+// Pendências, Lista de Espera, Atividades, Financeiro, Conteúdo e Equipe já
+// existem como páginas reais — se algum dia um novo item for adicionado
+// antes de a página existir, use `disabled: true` (fica esmaecido, sem
+// href) pra nunca gerar link quebrado.
 
 // Ícones lineares (thin line icons) — SVGs pequenos e neutros, sem
 // depender de nenhuma biblioteca externa.
@@ -18,6 +19,7 @@ const ICONS = {
   activity: '<svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,10 6,10 8,4 11,15 13,10 16,10"/></svg>',
   dollar: '<svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="1.2" x2="9" y2="16.8"/><path d="M12.3 4.8c0-1.5-1.6-2.3-3.3-2.3s-3.3.9-3.3 2.3 1.5 2 3.3 2.5c1.8.5 3.3 1 3.3 2.5s-1.6 2.3-3.3 2.3-3.3-.8-3.3-2.3"/></svg>',
   file: '<svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 2h6l3 3v11h-9Z"/><path d="M10.5 2v3h3"/></svg>',
+  clapper: '<svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5h13v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-7Z"/><path d="M2.5 7.5 3.3 3.8a1 1 0 0 1 1-.8h9.4a1 1 0 0 1 1 .8l.8 3.7M5.5 3.3l1 4.2M9.5 3.1l1 4.4"/></svg>',
   users: '<svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.7" cy="6.2" r="2.4"/><path d="M2.2 15.6c0-2.5 2-4.4 4.5-4.4s4.5 1.9 4.5 4.4"/><circle cx="13.3" cy="6.8" r="1.9"/><path d="M12 11.4c1.7.3 2.9 1.8 2.9 4.2"/></svg>',
   gear: '<svg viewBox="0 0 18 18" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="2.4"/><path d="M9 1.6v2.1M9 14.3v2.1M3.2 4.2l1.5 1.5M13.3 12.3l1.5 1.5M1.6 9h2.1M14.3 9h2.1M3.2 13.8l1.5-1.5M13.3 5.7l1.5-1.5"/></svg>',
   logout: '<svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v7.2"/><path d="M4.6 4.7a6 6 0 1 0 8.8 0"/></svg>',
@@ -33,22 +35,22 @@ const NAV_GROUPS = [
       { key: 'dashboard', href: 'dashboard.html', icon: ICONS.grid, label: 'Visão Geral' },
       { key: 'rota', href: 'rota-do-dia.html', icon: ICONS.pin, label: 'Rotas' },
       { key: 'historico', href: 'historico.html', icon: ICONS.file, label: 'Histórico' },
-      { key: 'pendencias', icon: ICONS.alert, label: 'Pendências', disabled: true },
-      { key: 'espera', icon: ICONS.hourglass, label: 'Lista de Espera', disabled: true },
-      { key: 'atividades', icon: ICONS.activity, label: 'Atividades', disabled: true },
+      { key: 'pendencias', href: 'pendencias.html', icon: ICONS.alert, label: 'Pendências' },
+      { key: 'lista-espera', href: 'lista-espera.html', icon: ICONS.hourglass, label: 'Lista de Espera' },
+      { key: 'atividades', href: 'atividades.html', icon: ICONS.activity, label: 'Atividades' },
     ]
   },
   {
     section: 'Gestão',
     items: [
-      { key: 'financeiro', icon: ICONS.dollar, label: 'Financeiro', disabled: true },
-      { key: 'conteudo', icon: ICONS.file, label: 'Conteúdo', disabled: true },
+      { key: 'financeiro', href: 'financeiro.html', icon: ICONS.dollar, label: 'Financeiro' },
+      { key: 'conteudo', href: 'conteudo.html', icon: ICONS.clapper, label: 'Conteúdo' },
     ]
   },
   {
     section: 'Administração',
     items: [
-      { key: 'equipe', icon: ICONS.users, label: 'Equipe', disabled: true },
+      { key: 'equipe', href: 'equipe.html', icon: ICONS.users, label: 'Equipe' },
       { key: 'config', href: 'configuracoes.html', icon: ICONS.gear, label: 'Configurações' },
     ]
   },

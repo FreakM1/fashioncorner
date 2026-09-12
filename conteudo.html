@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conteúdo</title>
+<link rel="stylesheet" href="assets/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script>guardDashboardAuth();</script>
+<style>
+  .filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+  .filter-row input[type=text]{width:auto;min-width:200px;flex:1;}
+  .filter-row select{width:auto;min-width:180px;}
+  .action-cell{display:flex;gap:6px;flex-wrap:wrap;}
+  .action-cell .btn{padding:6px 10px;font-size:11.5px;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page">
+
+      <div class="banner">
+        Os campos de arquivo abaixo aceitam por enquanto um <strong>link</strong> (Drive, WhatsApp, etc.) —
+        upload direto de arquivo exigiria configurar o Supabase Storage, que ainda não foi implementado
+        (ver observações no fim da entrega).
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Aguardando edição</div><div class="kpi-value" id="kpiAguardando">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Em edição</div><div class="kpi-value" id="kpiEdicao">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Aguardando revisão</div><div class="kpi-value" id="kpiRevisao">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total</div><div class="kpi-value" id="kpiTotal">0</div></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="card-title" style="margin:0;flex:1;">Nova tarefa de conteúdo</div>
+          <button class="btn btn-outline" id="toggleFormBtn" style="padding:6px 12px;font-size:12px;">+ Nova tarefa</button>
+        </div>
+        <div id="formBody" style="display:none;margin-top:16px;">
+          <label class="f-label">Título</label>
+          <input type="text" id="fTitulo" placeholder="Ex: Reels da coleção nova">
+          <label class="f-label">Descrição</label>
+          <textarea id="fDescricao" placeholder="Sobre o que é o conteúdo" style="min-height:50px;"></textarea>
+          <label class="f-label">Instruções de edição</label>
+          <textarea id="fInstrucoes" placeholder="Cortes, música, legenda, formato..." style="min-height:60px;"></textarea>
+          <div class="two-col">
+            <div>
+              <label class="f-label">Solicitante</label>
+              <input type="text" id="fSolicitante" list="conteudoPessoas" placeholder="Quem está pedindo">
+            </div>
+            <div>
+              <label class="f-label">Responsável (edição)</label>
+              <input type="text" id="fResponsavel" list="conteudoPessoas" placeholder="Quem vai editar">
+            </div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label class="f-label">Prazo (opcional)</label>
+              <input type="date" id="fPrazo">
+            </div>
+            <div>
+              <label class="f-label">Prioridade</label>
+              <select id="fPrioridade">
+                <option>Baixa</option>
+                <option selected>Normal</option>
+                <option>Alta</option>
+                <option>Urgente</option>
+              </select>
+            </div>
+          </div>
+          <label class="f-label">Link do material original</label>
+          <input type="text" id="fArquivoOriginal" placeholder="Link do Drive, WhatsApp etc.">
+          <label class="f-label">Link do arquivo final (quando pronto)</label>
+          <input type="text" id="fArquivoFinal" placeholder="Cole aqui quando a edição terminar">
+          <label class="f-label">Observações</label>
+          <textarea id="fObservacoes" placeholder="Ajustes pedidos, feedback..." style="min-height:50px;"></textarea>
+          <div class="form-actions" style="margin-top:14px;">
+            <button class="btn btn-dark" id="saveBtn">Salvar tarefa</button>
+            <button class="btn btn-outline" id="cancelFormBtn">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="filter-row">
+          <input type="text" id="searchInput" placeholder="Buscar por título ou descrição...">
+          <select id="statusFilter">
+            <option value="">Todos os status</option>
+            <option>Aguardando edição</option>
+            <option>Em edição</option>
+            <option>Aguardando revisão</option>
+            <option>Ajustes solicitados</option>
+            <option>Aprovado</option>
+            <option>Concluído</option>
+          </select>
+          <input type="text" id="responsavelFilter" placeholder="Filtrar por responsável" style="max-width:200px;">
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr>
+              <th>Título</th><th>Solicitante</th><th>Responsável</th><th>Prazo</th>
+              <th>Prioridade</th><th>Status</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="listBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-state" style="display:none;">Nenhuma tarefa de conteúdo ainda.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<datalist id="conteudoPessoas">
+  <option value="Natália">
+  <option value="Tiago">
+</datalist>
+<div class="toast" id="toast"></div>
+
+<script src="assets/shared.js"></script>
+<script src="assets/modules.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+renderShell({ active: 'conteudo', title: 'Conteúdo', subtitle: 'Fluxo de produção de vídeos e material' });
+
+const DOC_KEY = 'conteudo-db';
+const toast = document.getElementById('toast');
+function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
+
+// ordem do fluxo Natália -> Tiago -> Natália, usada só pra decidir o
+// próximo botão de atalho sugerido em cada card (a edição livre continua
+// disponível via "Editar").
+const STATUS_FLOW = ['Aguardando edição', 'Em edição', 'Aguardando revisão', 'Ajustes solicitados', 'Aprovado', 'Concluído'];
+
+let items = [];
+let editingId = null;
+
+async function load(){ items = await loadDoc(DOC_KEY, []); if(!Array.isArray(items)) items = []; }
+async function save(){ await saveDoc(DOC_KEY, items); }
+
+function statusTagClass(status){
+  switch(status){
+    case 'Concluído': case 'Aprovado': return 'tag-success';
+    case 'Ajustes solicitados': return 'tag-cancel';
+    case 'Em edição': case 'Aguardando revisão': return 'tag-progress';
+    default: return 'tag-pending';
+  }
+}
+function prioridadeTagClass(p){
+  switch(p){
+    case 'Urgente': return 'tag-cancel';
+    case 'Alta': return 'tag-info';
+    case 'Baixa': return 'tag-neutral';
+    default: return 'tag-pending';
+  }
+}
+
+const formBody = document.getElementById('formBody');
+const toggleFormBtn = document.getElementById('toggleFormBtn');
+function openForm(item){
+  editingId = item ? item.id : null;
+  document.getElementById('fTitulo').value = item ? item.titulo : '';
+  document.getElementById('fDescricao').value = item ? (item.descricao || '') : '';
+  document.getElementById('fInstrucoes').value = item ? (item.instrucoes || '') : '';
+  document.getElementById('fSolicitante').value = item ? item.solicitante : '';
+  document.getElementById('fResponsavel').value = item ? item.responsavel : '';
+  document.getElementById('fPrazo').value = item ? (item.prazo || '') : '';
+  document.getElementById('fPrioridade').value = item ? item.prioridade : 'Normal';
+  document.getElementById('fArquivoOriginal').value = item ? (item.arquivoOriginal || '') : '';
+  document.getElementById('fArquivoFinal').value = item ? (item.arquivoFinal || '') : '';
+  document.getElementById('fObservacoes').value = item ? (item.observacoes || '') : '';
+  formBody.style.display = 'block';
+  toggleFormBtn.textContent = 'Ocultar';
+  document.getElementById('saveBtn').textContent = item ? 'Salvar alterações' : 'Salvar tarefa';
+}
+function closeForm(){
+  editingId = null;
+  formBody.style.display = 'none';
+  toggleFormBtn.textContent = '+ Nova tarefa';
+}
+toggleFormBtn.addEventListener('click', () => {
+  if(formBody.style.display === 'none') openForm(null);
+  else closeForm();
+});
+document.getElementById('cancelFormBtn').addEventListener('click', closeForm);
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const titulo = document.getElementById('fTitulo').value.trim();
+  if(!titulo){ showToast('Preencha o título'); return; }
+  const data = {
+    titulo, descricao: document.getElementById('fDescricao').value.trim(),
+    instrucoes: document.getElementById('fInstrucoes').value.trim(),
+    solicitante: document.getElementById('fSolicitante').value.trim(),
+    responsavel: document.getElementById('fResponsavel').value.trim(),
+    prazo: document.getElementById('fPrazo').value || null,
+    prioridade: document.getElementById('fPrioridade').value,
+    arquivoOriginal: document.getElementById('fArquivoOriginal').value.trim(),
+    arquivoFinal: document.getElementById('fArquivoFinal').value.trim(),
+    observacoes: document.getElementById('fObservacoes').value.trim()
+  };
+  if(editingId){
+    const item = items.find(i => i.id === editingId);
+    Object.assign(item, data);
+    item.updatedAt = Date.now();
+  } else {
+    items.unshift(Object.assign({ id: genId(), status: 'Aguardando edição', createdAt: Date.now(), updatedAt: Date.now() }, data));
+  }
+  await save();
+  closeForm();
+  render();
+  showToast('Tarefa salva');
+});
+
+async function setStatus(id, status){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  item.status = status;
+  item.updatedAt = Date.now();
+  await save();
+  render();
+  showToast('Status atualizado');
+}
+
+function nextStepButton(i){
+  const idx = STATUS_FLOW.indexOf(i.status);
+  if(idx < 0 || idx >= STATUS_FLOW.length - 1) return '';
+  const next = STATUS_FLOW[idx + 1];
+  return `<button class="btn btn-ghost" data-status="${i.id}" data-to="${next}">${next}</button>`;
+}
+
+function render(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+  const respF = document.getElementById('responsavelFilter').value.trim().toLowerCase();
+
+  const filtered = items.filter(i => {
+    if(statusF && i.status !== statusF) return false;
+    if(respF && !(i.responsavel || '').toLowerCase().includes(respF)) return false;
+    if(q && !(i.titulo.toLowerCase().includes(q) || (i.descricao||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  document.getElementById('kpiAguardando').textContent = items.filter(i => i.status === 'Aguardando edição').length;
+  document.getElementById('kpiEdicao').textContent = items.filter(i => i.status === 'Em edição').length;
+  document.getElementById('kpiRevisao').textContent = items.filter(i => i.status === 'Aguardando revisão').length;
+  document.getElementById('kpiTotal').textContent = items.length;
+
+  document.getElementById('emptyState').style.display = filtered.length === 0 ? 'block' : 'none';
+  document.getElementById('listBody').innerHTML = filtered.map(i => `<tr>
+      <td>${escapeHtml(i.titulo)}</td>
+      <td>${escapeHtml(i.solicitante) || '—'}</td>
+      <td>${escapeHtml(i.responsavel) || '—'}</td>
+      <td>${fmtDateBR(i.prazo)}</td>
+      <td><span class="tag ${prioridadeTagClass(i.prioridade)}">${i.prioridade}</span></td>
+      <td><span class="tag ${statusTagClass(i.status)}">${i.status}</span></td>
+      <td class="action-cell">
+        <button class="btn btn-outline" data-edit="${i.id}">Editar</button>
+        ${nextStepButton(i)}
+      </td>
+    </tr>`).join('');
+}
+
+document.getElementById('listBody').addEventListener('click', (e) => {
+  const editBtn = e.target.closest('[data-edit]');
+  if(editBtn){ openForm(items.find(i => i.id === editBtn.dataset.edit)); return; }
+  const statusBtn = e.target.closest('[data-status]');
+  if(statusBtn){ setStatus(statusBtn.dataset.status, statusBtn.dataset.to); }
+});
+
+['searchInput','statusFilter','responsavelFilter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+
+async function init(){
+  await ensureAuth();
+  await load();
+  render();
+}
+init();
+</script>
+</body>
+</html>

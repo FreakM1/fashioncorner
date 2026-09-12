@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pendências</title>
+<link rel="stylesheet" href="assets/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script>guardDashboardAuth();</script>
+<style>
+  .filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+  .filter-row input[type=text]{width:auto;min-width:200px;flex:1;}
+  .filter-row select{width:auto;min-width:160px;}
+  .action-cell{display:flex;gap:6px;flex-wrap:wrap;}
+  .action-cell .btn{padding:6px 10px;font-size:11.5px;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page">
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Pendentes</div><div class="kpi-value" id="kpiPendentes">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Em andamento</div><div class="kpi-value" id="kpiAndamento">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Concluídas (30 dias)</div><div class="kpi-value" id="kpiConcluidas">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total</div><div class="kpi-value" id="kpiTotal">0</div></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="card-title" style="margin:0;flex:1;">Nova pendência</div>
+          <button class="btn btn-outline" id="toggleFormBtn" style="padding:6px 12px;font-size:12px;">+ Nova pendência</button>
+        </div>
+        <div id="formBody" style="display:none;margin-top:16px;">
+          <div class="two-col">
+            <div>
+              <label class="f-label">Cliente</label>
+              <input type="text" id="fCliente" placeholder="Nome da cliente">
+            </div>
+            <div>
+              <label class="f-label">Tipo / motivo</label>
+              <select id="fTipo">
+                <option>Entrega não realizada</option>
+                <option>Cliente ausente</option>
+                <option>Cliente pediu novo horário</option>
+                <option>Produto voltou para a loja</option>
+                <option>Troca não concluída</option>
+                <option>Retirada pendente</option>
+                <option>Cliente precisa ser chamada</option>
+                <option>Outro</option>
+              </select>
+            </div>
+          </div>
+          <label class="f-label">Descrição</label>
+          <textarea id="fDescricao" placeholder="O que precisa de continuidade" style="min-height:60px;"></textarea>
+          <div class="two-col">
+            <div>
+              <label class="f-label">Origem</label>
+              <select id="fOrigem">
+                <option>Rota do Dia</option>
+                <option>Loja</option>
+                <option>WhatsApp</option>
+                <option>Telefone</option>
+                <option>Outro</option>
+              </select>
+            </div>
+            <div>
+              <label class="f-label">Responsável</label>
+              <input type="text" id="fResponsavel" list="equipeNames" placeholder="Quem vai resolver">
+            </div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label class="f-label">Data</label>
+              <input type="date" id="fData">
+            </div>
+            <div>
+              <label class="f-label">Prazo (opcional)</label>
+              <input type="date" id="fPrazo">
+            </div>
+          </div>
+          <label class="f-label">Observação (opcional)</label>
+          <textarea id="fObservacao" placeholder="Detalhe adicional" style="min-height:50px;"></textarea>
+          <div class="form-actions" style="margin-top:14px;">
+            <button class="btn btn-dark" id="saveBtn">Salvar pendência</button>
+            <button class="btn btn-outline" id="cancelFormBtn">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="filter-row">
+          <input type="text" id="searchInput" placeholder="Buscar por cliente ou descrição...">
+          <select id="statusFilter">
+            <option value="">Todos os status</option>
+            <option>Pendente</option>
+            <option>Em andamento</option>
+            <option>Concluído</option>
+            <option>Cancelado</option>
+          </select>
+          <input type="text" id="responsavelFilter" placeholder="Filtrar por responsável" style="max-width:200px;">
+          <input type="date" id="dataFilter" style="max-width:160px;">
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr>
+              <th>Cliente</th><th>Tipo</th><th>Descrição</th><th>Origem</th><th>Responsável</th>
+              <th>Data</th><th>Prazo</th><th>Status</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="listBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-state" style="display:none;">Nenhuma pendência encontrada.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<datalist id="equipeNames"></datalist>
+<div class="toast" id="toast"></div>
+
+<script src="assets/shared.js"></script>
+<script src="assets/modules.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+renderShell({ active: 'pendencias', title: 'Pendências', subtitle: 'Tudo que precisa de continuidade' });
+
+const DOC_KEY = 'pendencias-db';
+const toast = document.getElementById('toast');
+function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
+
+let items = [];
+let editingId = null;
+
+async function load(){ items = await loadDoc(DOC_KEY, []); if(!Array.isArray(items)) items = []; }
+async function save(){ await saveDoc(DOC_KEY, items); }
+
+function statusTagClass(status){
+  switch(status){
+    case 'Concluído': return 'tag-success';
+    case 'Cancelado': return 'tag-cancel';
+    case 'Em andamento': return 'tag-progress';
+    default: return 'tag-pending';
+  }
+}
+
+const formBody = document.getElementById('formBody');
+const toggleFormBtn = document.getElementById('toggleFormBtn');
+function openForm(item){
+  editingId = item ? item.id : null;
+  document.getElementById('fCliente').value = item ? item.cliente : '';
+  document.getElementById('fTipo').value = item ? item.tipo : 'Entrega não realizada';
+  document.getElementById('fDescricao').value = item ? item.descricao : '';
+  document.getElementById('fOrigem').value = item ? item.origem : 'Rota do Dia';
+  document.getElementById('fResponsavel').value = item ? item.responsavel : '';
+  document.getElementById('fData').value = item ? item.data : dateSuffix();
+  document.getElementById('fPrazo').value = item ? (item.prazo || '') : '';
+  document.getElementById('fObservacao').value = item ? (item.observacao || '') : '';
+  formBody.style.display = 'block';
+  toggleFormBtn.textContent = 'Ocultar';
+  document.getElementById('saveBtn').textContent = item ? 'Salvar alterações' : 'Salvar pendência';
+}
+function closeForm(){
+  editingId = null;
+  formBody.style.display = 'none';
+  toggleFormBtn.textContent = '+ Nova pendência';
+}
+toggleFormBtn.addEventListener('click', () => {
+  if(formBody.style.display === 'none') openForm(null);
+  else closeForm();
+});
+document.getElementById('cancelFormBtn').addEventListener('click', closeForm);
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const cliente = document.getElementById('fCliente').value.trim();
+  const descricao = document.getElementById('fDescricao').value.trim();
+  if(!cliente || !descricao){ showToast('Preencha ao menos cliente e descrição'); return; }
+  const data = {
+    cliente, tipo: document.getElementById('fTipo').value,
+    descricao, origem: document.getElementById('fOrigem').value,
+    responsavel: document.getElementById('fResponsavel').value.trim(),
+    data: document.getElementById('fData').value || dateSuffix(),
+    prazo: document.getElementById('fPrazo').value || null,
+    observacao: document.getElementById('fObservacao').value.trim()
+  };
+  if(editingId){
+    const item = items.find(i => i.id === editingId);
+    Object.assign(item, data);
+    item.updatedAt = Date.now();
+  } else {
+    items.unshift(Object.assign({ id: genId(), status: 'Pendente', createdAt: Date.now(), updatedAt: Date.now() }, data));
+  }
+  await save();
+  closeForm();
+  render();
+  showToast('Pendência salva');
+});
+
+async function setStatus(id, status){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  item.status = status;
+  item.updatedAt = Date.now();
+  await save();
+  render();
+  showToast('Status atualizado');
+}
+
+function render(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+  const respF = document.getElementById('responsavelFilter').value.trim().toLowerCase();
+  const dataF = document.getElementById('dataFilter').value;
+
+  const filtered = items.filter(i => {
+    if(statusF && i.status !== statusF) return false;
+    if(respF && !(i.responsavel || '').toLowerCase().includes(respF)) return false;
+    if(dataF && i.data !== dataF) return false;
+    if(q && !(i.cliente.toLowerCase().includes(q) || i.descricao.toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  document.getElementById('kpiPendentes').textContent = items.filter(i => i.status === 'Pendente').length;
+  document.getElementById('kpiAndamento').textContent = items.filter(i => i.status === 'Em andamento').length;
+  const trintaDiasAtras = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  document.getElementById('kpiConcluidas').textContent = items.filter(i => i.status === 'Concluído' && i.updatedAt >= trintaDiasAtras).length;
+  document.getElementById('kpiTotal').textContent = items.length;
+
+  document.getElementById('emptyState').style.display = filtered.length === 0 ? 'block' : 'none';
+  document.getElementById('listBody').innerHTML = filtered.map(i => {
+    const isFinal = i.status === 'Concluído' || i.status === 'Cancelado';
+    return `<tr>
+      <td>${escapeHtml(i.cliente)}</td>
+      <td>${escapeHtml(i.tipo)}</td>
+      <td style="max-width:260px;">${escapeHtml(i.descricao)}</td>
+      <td>${escapeHtml(i.origem)}</td>
+      <td>${escapeHtml(i.responsavel) || '—'}</td>
+      <td>${fmtDateBR(i.data)}</td>
+      <td>${fmtDateBR(i.prazo)}</td>
+      <td><span class="tag ${statusTagClass(i.status)}">${i.status}</span></td>
+      <td class="action-cell">
+        <button class="btn btn-outline" data-edit="${i.id}">Editar</button>
+        ${!isFinal ? `<button class="btn btn-ghost" data-status="${i.id}" data-to="Em andamento">Em andamento</button>` : ''}
+        ${!isFinal ? `<button class="btn btn-ghost" data-status="${i.id}" data-to="Concluído">Concluir</button>` : ''}
+        ${!isFinal ? `<button class="btn btn-ghost" data-status="${i.id}" data-to="Cancelado">Cancelar</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('listBody').addEventListener('click', (e) => {
+  const editBtn = e.target.closest('[data-edit]');
+  if(editBtn){ openForm(items.find(i => i.id === editBtn.dataset.edit)); return; }
+  const statusBtn = e.target.closest('[data-status]');
+  if(statusBtn){ setStatus(statusBtn.dataset.status, statusBtn.dataset.to); }
+});
+
+['searchInput','statusFilter','responsavelFilter','dataFilter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+
+async function init(){
+  await ensureAuth();
+  const names = await loadEquipeNames();
+  document.getElementById('equipeNames').innerHTML = names.map(n => `<option value="${escapeHtml(n)}">`).join('');
+  await load();
+  render();
+}
+init();
+</script>
+</body>
+</html>

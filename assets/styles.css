@@ -264,6 +264,12 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13.5px;}
 .tag-not-delivered{background:var(--danger-tint);color:var(--danger);}
 .tag-swapped{background:var(--brown-light);color:var(--wine-dark);}
 .tag-info{background:var(--info-tint);color:var(--info);}
+/* Variantes genéricas de tag usadas pelos módulos internos (Pendências,
+   Lista de Espera, Atividades, Conteúdo, Equipe) — mesma linguagem visual
+   das tags de rota acima, só com nomes que não presumem contexto de rota. */
+.tag-success{background:var(--sage-tint);color:var(--sage);}
+.tag-cancel{background:var(--danger-tint);color:var(--danger);}
+.tag-neutral{background:var(--paper-2);color:var(--muted);}
 
 .toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
