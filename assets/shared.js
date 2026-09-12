@@ -12,14 +12,14 @@ const GOOGLE_MAPS_API_KEY = "__GOOGLE_MAPS_API_KEY__";
 function hasGoogleMapsKey(){ return !!GOOGLE_MAPS_API_KEY && !GOOGLE_MAPS_API_KEY.startsWith('__'); }
 
 // ---------- KILL SWITCH TEMPORÁRIO: Compute Route Matrix ----------
-// A cobrança do Google Cloud disparou e o relatório aponta a SKU
-// "Routes: Compute Route Matrix Enterprise". Enquanto a causa não for
-// confirmada e corrigida, NENHUMA chamada real a computeRouteMatrix deve
-// sair do app — computeRouteMatrixRequest() abaixo já verifica esta flag
-// e recusa a chamada antes de qualquer fetch. O código da função não foi
-// removido, só a execução foi travada. Só volte pra true depois de
-// confirmar (fora do TWO_WHEELER, que é o suspeito nº 1) o que está
-// empurrando a chamada pra SKU Enterprise.
+// A cobrança do Google Cloud disparou e o relatório apontou a SKU
+// "Routes: Compute Route Matrix Enterprise". Causa confirmada na
+// documentação do Google: travelMode TWO_WHEELER é gatilho de SKU
+// Enterprise tanto em computeRoutes quanto em computeRouteMatrix — por
+// isso TWO_WHEELER foi trocado por DRIVE nas duas chamadas abaixo, e a
+// Matrix continua desativada por segurança enquanto isso é validado em
+// produção. computeRouteMatrixRequest() recusa a chamada antes de
+// qualquer fetch; o código da função não foi removido, só travado.
 const ROUTE_MATRIX_ENABLED = false;
 
 // Escapa texto antes de jogar em innerHTML — todo campo digitado pelo
@@ -120,7 +120,7 @@ async function computeRoutesRequest({ origin, destination, intermediates, optimi
       origin: { address: origin },
       destination: { address: destination },
       intermediates: intermediates.map(address => ({ address })),
-      travelMode: 'TWO_WHEELER', // moto — motoboy, não carro
+      travelMode: 'DRIVE', // TEMPORÁRIO: TWO_WHEELER é gatilho confirmado de SKU Enterprise — ver nota no topo do arquivo
       optimizeWaypointOrder: !!optimizeWaypointOrder
     })
   });
@@ -353,7 +353,7 @@ async function computeRouteMatrixRequest(addresses){
       'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
       'X-Goog-FieldMask': 'originIndex,destinationIndex,duration,distanceMeters,condition'
     },
-    body: JSON.stringify({ origins: waypoints, destinations: waypoints, travelMode: 'TWO_WHEELER' }) // moto — motoboy, não carro
+    body: JSON.stringify({ origins: waypoints, destinations: waypoints, travelMode: 'DRIVE' }) // TEMPORÁRIO: TWO_WHEELER é gatilho confirmado de SKU Enterprise — ver nota no topo do arquivo. Chamada continua bloqueada por ROUTE_MATRIX_ENABLED de qualquer forma.
   });
   if(!res.ok){
     const errBody = await res.json().catch(() => null);
