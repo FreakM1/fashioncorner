@@ -649,7 +649,7 @@ const finalizeBtn = document.getElementById('finalizeBtn');
 // remover), sem precisar chamar a API de novo.
 async function refreshTravelMatrix(){
   travelMatrix = null; matrixIndexById = {};
-  if(!hasGoogleMapsKey() || orders.length < 2) return;
+  if(!ROUTE_MATRIX_ENABLED || !hasGoogleMapsKey() || orders.length < 2) return;
   try {
     const addresses = orders.map(o => o.address);
     orders.forEach((o, i) => { matrixIndexById[o._id] = i; });
@@ -1065,9 +1065,11 @@ async function organizeRoute(){
   }
 
   const totalPoints = intermediates.length + 2;
-  const useTimeAware = hasAnyWindow && totalPoints <= 25;
+  const useTimeAware = ROUTE_MATRIX_ENABLED && hasAnyWindow && totalPoints <= 25;
   if(hasAnyWindow && totalPoints > 25){
     showToast('Muitas paradas pra considerar os horários automaticamente (máx. 25) — organizando só por distância');
+  } else if(hasAnyWindow && !ROUTE_MATRIX_ENABLED){
+    showToast('Organização por horário temporariamente indisponível — organizando só por distância (fluxo padrão)');
   }
 
   organizeBtn.disabled = true;
@@ -1187,7 +1189,7 @@ async function enterSplitMode(kind){
     // a rota inteira já tem sua própria travelMatrix carregada — reaproveita.
     splitMatrix = travelMatrix;
     splitMatrixIndexById = matrixIndexById;
-  } else if(hasGoogleMapsKey()){
+  } else if(ROUTE_MATRIX_ENABLED && hasGoogleMapsKey()){
     // no resplit as paradas vêm de 2 rotas diferentes — precisa de uma
     // matriz própria cobrindo as duas metades combinadas.
     const { origin, destination } = splitEndpoints();

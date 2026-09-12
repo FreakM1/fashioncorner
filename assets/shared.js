@@ -11,6 +11,17 @@
 const GOOGLE_MAPS_API_KEY = "__GOOGLE_MAPS_API_KEY__";
 function hasGoogleMapsKey(){ return !!GOOGLE_MAPS_API_KEY && !GOOGLE_MAPS_API_KEY.startsWith('__'); }
 
+// ---------- KILL SWITCH TEMPORÁRIO: Compute Route Matrix ----------
+// A cobrança do Google Cloud disparou e o relatório aponta a SKU
+// "Routes: Compute Route Matrix Enterprise". Enquanto a causa não for
+// confirmada e corrigida, NENHUMA chamada real a computeRouteMatrix deve
+// sair do app — computeRouteMatrixRequest() abaixo já verifica esta flag
+// e recusa a chamada antes de qualquer fetch. O código da função não foi
+// removido, só a execução foi travada. Só volte pra true depois de
+// confirmar (fora do TWO_WHEELER, que é o suspeito nº 1) o que está
+// empurrando a chamada pra SKU Enterprise.
+const ROUTE_MATRIX_ENABLED = false;
+
 // Escapa texto antes de jogar em innerHTML — todo campo digitado pelo
 // usuário (nome, endereço, telefone, observações etc.) passa por aqui
 // antes de entrar num template de HTML, pra evitar XSS armazenado.
@@ -331,6 +342,9 @@ function computeEtasFromLegs(orders, legs, cfg){
 // no cliente, com esses tempos como insumo). Limite do Google: 25×25
 // pontos por requisição.
 async function computeRouteMatrixRequest(addresses){
+  if(!ROUTE_MATRIX_ENABLED){
+    throw new Error('ROUTE_MATRIX_DISABLED: chamadas a computeRouteMatrix estão temporariamente desativadas (assets/shared.js) por causa da cobrança Enterprise — ver CLAUDE.md / commit desta mudança.');
+  }
   const waypoints = addresses.map(address => ({ waypoint: { address } }));
   const res = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
     method: 'POST',
