@@ -1,10 +1,27 @@
 // Shell de navegação (sidebar + topbar) compartilhado por todas as
 // páginas do painel. Cada página só chama renderShell({active, title, subtitle}).
-const NAV_ITEMS = [
-  { key: 'dashboard', href: 'dashboard.html', icon: '&#9635;', label: 'Dashboard' },
-  { key: 'rota', href: 'rota-do-dia.html', icon: '&#9679;', label: 'Rota do Dia' },
-  { key: 'historico', href: 'historico.html', icon: '&#9776;', label: 'Histórico de Rotas' },
-  { key: 'config', href: 'configuracoes.html', icon: '&#9881;', label: 'Configurações' },
+// Agrupado em seções (a primeira, sem título, é só a Visão Geral) —
+// renderShell desenha um título de seção antes de cada grupo que tiver
+// `title`, e mantém a marcação do item ativo por `key`, igual antes.
+const NAV_SECTIONS = [
+  { items: [
+    { key: 'dashboard', href: 'dashboard.html', icon: '&#9635;', label: 'Visão Geral' },
+  ]},
+  { title: 'Operação', items: [
+    { key: 'rota', href: 'rota-do-dia.html', icon: '&#9679;', label: 'Rotas' },
+    { key: 'historico', href: 'historico.html', icon: '&#9776;', label: 'Histórico de Rotas' },
+    { key: 'pendencias', href: 'pendencias.html', icon: '&#10071;', label: 'Pendências' },
+    { key: 'lista-espera', href: 'lista-espera.html', icon: '&#9203;', label: 'Lista de Espera' },
+    { key: 'atividades', href: 'atividades.html', icon: '&#9745;', label: 'Atividades' },
+  ]},
+  { title: 'Gestão', items: [
+    { key: 'financeiro', href: 'financeiro.html', icon: '&#128176;', label: 'Financeiro' },
+    { key: 'conteudo', href: 'conteudo.html', icon: '&#127909;', label: 'Conteúdo' },
+  ]},
+  { title: 'Administração', items: [
+    { key: 'equipe', href: 'equipe.html', icon: '&#128101;', label: 'Equipe' },
+    { key: 'config', href: 'configuracoes.html', icon: '&#9881;', label: 'Configurações' },
+  ]},
 ];
 
 function renderShell({ active, title, subtitle }){
@@ -14,10 +31,13 @@ function renderShell({ active, title, subtitle }){
   sidebar.innerHTML = `
     <div class="sidebar-logo">FASHION<span>CORNER</span></div>
     <nav class="sidebar-nav">
-      ${NAV_ITEMS.map(item => `
-        <a href="${item.href}" class="${item.key === active ? 'active' : ''}">
-          <span class="icon">${item.icon}</span><span class="label">${item.label}</span>
-        </a>`).join('')}
+      ${NAV_SECTIONS.map(section => `
+        ${section.title ? `<div class="sidebar-section-title">${section.title}</div>` : ''}
+        ${section.items.map(item => `
+          <a href="${item.href}" class="${item.key === active ? 'active' : ''}">
+            <span class="icon">${item.icon}</span><span class="label">${item.label}</span>
+          </a>`).join('')}
+      `).join('')}
     </nav>
     <div class="sidebar-account">
       <div class="sidebar-account-email" id="sidebarAccountEmail">&nbsp;</div>

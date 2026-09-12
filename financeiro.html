@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financeiro</title>
+<link rel="stylesheet" href="assets/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script>guardDashboardAuth();</script>
+<style>
+  .fin-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .fin-tab{font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:8px 14px;border-radius:20px;
+    border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;white-space:nowrap;}
+  .fin-tab.active{border-color:var(--wine);background:var(--wine);color:#fff;}
+  .fin-section{display:none;}
+  .fin-section.active{display:block;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page">
+
+      <div class="banner">
+        Estrutura visual inicial do Financeiro — ainda sem lançamentos nem cálculos automáticos.
+        Cada seção abaixo será conectada aos dados reais numa próxima etapa.
+      </div>
+
+      <div class="fin-tabs" id="finTabs"></div>
+
+      <div class="fin-section active" data-section="visao-geral">
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">A pagar (mês)</div><div class="kpi-value">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">A receber (mês)</div><div class="kpi-value">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Despesas (mês)</div><div class="kpi-value">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Saldo previsto</div><div class="kpi-value">—</div></div>
+        </div>
+        <div class="card empty-state">Resumo geral aparecerá aqui quando as seções abaixo tiverem lançamentos.</div>
+      </div>
+
+      <div class="fin-section" data-section="contas-pagar">
+        <div class="card">
+          <div class="card-title">Contas a pagar</div>
+          <div class="empty-state">Nenhum lançamento ainda — estrutura em preparação.</div>
+        </div>
+      </div>
+
+      <div class="fin-section" data-section="contas-receber">
+        <div class="card">
+          <div class="card-title">Contas a receber</div>
+          <div class="empty-state">Nenhum lançamento ainda — estrutura em preparação.</div>
+        </div>
+      </div>
+
+      <div class="fin-section" data-section="despesas">
+        <div class="card">
+          <div class="card-title">Despesas</div>
+          <div class="empty-state">Nenhum lançamento ainda — estrutura em preparação.</div>
+        </div>
+      </div>
+
+      <div class="fin-section" data-section="cartoes">
+        <div class="card">
+          <div class="card-title">Cartões</div>
+          <div class="empty-state">Nenhum cartão cadastrado ainda — estrutura em preparação.</div>
+        </div>
+      </div>
+
+      <div class="fin-section" data-section="crediario">
+        <div class="card">
+          <div class="card-title">Crediário</div>
+          <div class="empty-state">Nenhum crediário cadastrado ainda — estrutura em preparação.</div>
+        </div>
+      </div>
+
+      <div class="fin-section" data-section="motoboy">
+        <div class="card">
+          <div class="card-title">Motoboy</div>
+          <p class="note" style="margin:0 0 14px;">
+            Esses números serão calculados a partir das rotas já concluídas (Histórico de Rotas) —
+            nada aqui altera ou depende de mudanças na lógica das rotas, é só leitura futura.
+          </p>
+          <div class="kpi-grid" style="margin-bottom:0;">
+            <div class="kpi-card"><div class="kpi-label">Dias trabalhados</div><div class="kpi-value">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Rotas realizadas</div><div class="kpi-value">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Entregas</div><div class="kpi-value">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Retiradas</div><div class="kpi-value">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Trocas</div><div class="kpi-value">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Km por dia (média)</div><div class="kpi-value">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Km por semana</div><div class="kpi-value">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Valor previsto a pagar</div><div class="kpi-value">—</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/shared.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+renderShell({ active: 'financeiro', title: 'Financeiro', subtitle: 'Estrutura inicial da gestão financeira' });
+
+const FIN_TABS = [
+  { key: 'visao-geral', label: 'Visão geral' },
+  { key: 'contas-pagar', label: 'Contas a pagar' },
+  { key: 'contas-receber', label: 'Contas a receber' },
+  { key: 'despesas', label: 'Despesas' },
+  { key: 'cartoes', label: 'Cartões' },
+  { key: 'crediario', label: 'Crediário' },
+  { key: 'motoboy', label: 'Motoboy' },
+];
+
+function renderFinTabs(active){
+  document.getElementById('finTabs').innerHTML = FIN_TABS.map(t =>
+    `<button type="button" class="fin-tab ${t.key===active?'active':''}" data-tab="${t.key}">${t.label}</button>`
+  ).join('');
+}
+
+function switchFinTab(key){
+  renderFinTabs(key);
+  document.querySelectorAll('.fin-section').forEach(el => el.classList.toggle('active', el.dataset.section === key));
+}
+
+document.getElementById('finTabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('.fin-tab');
+  if(btn) switchFinTab(btn.dataset.tab);
+});
+
+(async () => { await ensureAuth(); switchFinTab('visao-geral'); })();
+</script>
+</body>
+</html>

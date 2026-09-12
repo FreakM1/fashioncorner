@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista de Espera</title>
+<link rel="stylesheet" href="assets/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script>guardDashboardAuth();</script>
+<style>
+  .filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+  .filter-row input[type=text]{width:auto;min-width:200px;flex:1;}
+  .filter-row select{width:auto;min-width:180px;}
+  .action-cell{display:flex;gap:6px;flex-wrap:wrap;}
+  .action-cell .btn{padding:6px 10px;font-size:11.5px;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page">
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Aguardando reposição</div><div class="kpi-value" id="kpiAguardando">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Produto chegou</div><div class="kpi-value" id="kpiChegou">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Cliente avisada</div><div class="kpi-value" id="kpiAvisada">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total na lista</div><div class="kpi-value" id="kpiTotal">0</div></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="card-title" style="margin:0;flex:1;">Nova cliente na lista</div>
+          <button class="btn btn-outline" id="toggleFormBtn" style="padding:6px 12px;font-size:12px;">+ Adicionar cliente</button>
+        </div>
+        <div id="formBody" style="display:none;margin-top:16px;">
+          <div class="two-col">
+            <div>
+              <label class="f-label">Cliente</label>
+              <input type="text" id="fCliente" placeholder="Nome da cliente">
+            </div>
+            <div>
+              <label class="f-label">Telefone</label>
+              <input type="tel" id="fTelefone" placeholder="19999999999">
+            </div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label class="f-label">Produto</label>
+              <input type="text" id="fProduto" placeholder="Ex: Vestido floral">
+            </div>
+            <div>
+              <label class="f-label">Tamanho</label>
+              <input type="text" id="fTamanho" placeholder="Ex: M">
+            </div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label class="f-label">Cor</label>
+              <input type="text" id="fCor" placeholder="Ex: Vermelho">
+            </div>
+            <div>
+              <label class="f-label">Responsável</label>
+              <input type="text" id="fResponsavel" list="equipeNames" placeholder="Quem cadastrou">
+            </div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label class="f-label">Data</label>
+              <input type="date" id="fData">
+            </div>
+            <div></div>
+          </div>
+          <label class="f-label">Observação (opcional)</label>
+          <textarea id="fObservacao" placeholder="Detalhe adicional" style="min-height:50px;"></textarea>
+          <div class="form-actions" style="margin-top:14px;">
+            <button class="btn btn-dark" id="saveBtn">Salvar</button>
+            <button class="btn btn-outline" id="cancelFormBtn">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="filter-row">
+          <input type="text" id="searchInput" placeholder="Buscar por cliente ou produto...">
+          <select id="statusFilter">
+            <option value="">Todos os status</option>
+            <option>Aguardando reposição</option>
+            <option>Produto chegou</option>
+            <option>Cliente avisada</option>
+            <option>Concluído</option>
+            <option>Cancelado</option>
+          </select>
+          <input type="text" id="responsavelFilter" placeholder="Filtrar por responsável" style="max-width:200px;">
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr>
+              <th>Cliente</th><th>Telefone</th><th>Produto</th><th>Tamanho</th><th>Cor</th>
+              <th>Data</th><th>Responsável</th><th>Status</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="listBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-state" style="display:none;">Nenhuma cliente na lista de espera.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<datalist id="equipeNames"></datalist>
+<div class="toast" id="toast"></div>
+
+<script src="assets/shared.js"></script>
+<script src="assets/modules.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+renderShell({ active: 'lista-espera', title: 'Lista de Espera', subtitle: 'Clientes esperando reposição de produto' });
+
+const DOC_KEY = 'lista-espera-db';
+const toast = document.getElementById('toast');
+function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
+
+let items = [];
+let editingId = null;
+
+async function load(){ items = await loadDoc(DOC_KEY, []); if(!Array.isArray(items)) items = []; }
+async function save(){ await saveDoc(DOC_KEY, items); }
+
+function statusTagClass(status){
+  switch(status){
+    case 'Concluído': return 'tag-success';
+    case 'Cancelado': return 'tag-cancel';
+    case 'Cliente avisada': return 'tag-info';
+    case 'Produto chegou': return 'tag-progress';
+    default: return 'tag-pending';
+  }
+}
+
+const formBody = document.getElementById('formBody');
+const toggleFormBtn = document.getElementById('toggleFormBtn');
+function openForm(item){
+  editingId = item ? item.id : null;
+  document.getElementById('fCliente').value = item ? item.cliente : '';
+  document.getElementById('fTelefone').value = item ? item.telefone : '';
+  document.getElementById('fProduto').value = item ? item.produto : '';
+  document.getElementById('fTamanho').value = item ? item.tamanho : '';
+  document.getElementById('fCor').value = item ? item.cor : '';
+  document.getElementById('fResponsavel').value = item ? item.responsavel : '';
+  document.getElementById('fData').value = item ? item.data : dateSuffix();
+  document.getElementById('fObservacao').value = item ? (item.observacao || '') : '';
+  formBody.style.display = 'block';
+  toggleFormBtn.textContent = 'Ocultar';
+  document.getElementById('saveBtn').textContent = item ? 'Salvar alterações' : 'Salvar';
+}
+function closeForm(){
+  editingId = null;
+  formBody.style.display = 'none';
+  toggleFormBtn.textContent = '+ Adicionar cliente';
+}
+toggleFormBtn.addEventListener('click', () => {
+  if(formBody.style.display === 'none') openForm(null);
+  else closeForm();
+});
+document.getElementById('cancelFormBtn').addEventListener('click', closeForm);
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const cliente = document.getElementById('fCliente').value.trim();
+  const produto = document.getElementById('fProduto').value.trim();
+  if(!cliente || !produto){ showToast('Preencha ao menos cliente e produto'); return; }
+  const data = {
+    cliente, telefone: document.getElementById('fTelefone').value.trim(),
+    produto, tamanho: document.getElementById('fTamanho').value.trim(),
+    cor: document.getElementById('fCor').value.trim(),
+    responsavel: document.getElementById('fResponsavel').value.trim(),
+    data: document.getElementById('fData').value || dateSuffix(),
+    observacao: document.getElementById('fObservacao').value.trim()
+  };
+  if(editingId){
+    const item = items.find(i => i.id === editingId);
+    Object.assign(item, data);
+    item.updatedAt = Date.now();
+  } else {
+    items.unshift(Object.assign({ id: genId(), status: 'Aguardando reposição', createdAt: Date.now(), updatedAt: Date.now() }, data));
+  }
+  await save();
+  closeForm();
+  render();
+  showToast('Cliente salva na lista de espera');
+});
+
+async function setStatus(id, status){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  item.status = status;
+  item.updatedAt = Date.now();
+  await save();
+  render();
+  showToast('Status atualizado');
+}
+
+function render(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+  const respF = document.getElementById('responsavelFilter').value.trim().toLowerCase();
+
+  const filtered = items.filter(i => {
+    if(statusF && i.status !== statusF) return false;
+    if(respF && !(i.responsavel || '').toLowerCase().includes(respF)) return false;
+    if(q && !(i.cliente.toLowerCase().includes(q) || i.produto.toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  document.getElementById('kpiAguardando').textContent = items.filter(i => i.status === 'Aguardando reposição').length;
+  document.getElementById('kpiChegou').textContent = items.filter(i => i.status === 'Produto chegou').length;
+  document.getElementById('kpiAvisada').textContent = items.filter(i => i.status === 'Cliente avisada').length;
+  document.getElementById('kpiTotal').textContent = items.length;
+
+  document.getElementById('emptyState').style.display = filtered.length === 0 ? 'block' : 'none';
+  document.getElementById('listBody').innerHTML = filtered.map(i => {
+    const isFinal = i.status === 'Concluído' || i.status === 'Cancelado';
+    return `<tr>
+      <td>${escapeHtml(i.cliente)}</td>
+      <td>${escapeHtml(i.telefone) || '—'}</td>
+      <td>${escapeHtml(i.produto)}</td>
+      <td>${escapeHtml(i.tamanho) || '—'}</td>
+      <td>${escapeHtml(i.cor) || '—'}</td>
+      <td>${fmtDateBR(i.data)}</td>
+      <td>${escapeHtml(i.responsavel) || '—'}</td>
+      <td><span class="tag ${statusTagClass(i.status)}">${i.status}</span></td>
+      <td class="action-cell">
+        <button class="btn btn-outline" data-edit="${i.id}">Editar</button>
+        ${!isFinal && i.status !== 'Produto chegou' ? `<button class="btn btn-ghost" data-status="${i.id}" data-to="Produto chegou">Chegou</button>` : ''}
+        ${!isFinal && i.status !== 'Cliente avisada' ? `<button class="btn btn-ghost" data-status="${i.id}" data-to="Cliente avisada">Avisada</button>` : ''}
+        ${!isFinal ? `<button class="btn btn-ghost" data-status="${i.id}" data-to="Concluído">Concluir</button>` : ''}
+        ${!isFinal ? `<button class="btn btn-ghost" data-status="${i.id}" data-to="Cancelado">Cancelar</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('listBody').addEventListener('click', (e) => {
+  const editBtn = e.target.closest('[data-edit]');
+  if(editBtn){ openForm(items.find(i => i.id === editBtn.dataset.edit)); return; }
+  const statusBtn = e.target.closest('[data-status]');
+  if(statusBtn){ setStatus(statusBtn.dataset.status, statusBtn.dataset.to); }
+});
+
+['searchInput','statusFilter','responsavelFilter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+
+async function init(){
+  await ensureAuth();
+  const names = await loadEquipeNames();
+  document.getElementById('equipeNames').innerHTML = names.map(n => `<option value="${escapeHtml(n)}">`).join('');
+  await load();
+  render();
+}
+init();
+</script>
+</body>
+</html>

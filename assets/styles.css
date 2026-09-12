@@ -46,6 +46,11 @@ img{max-width:100%;}
 }
 .sidebar-logo span{color:var(--gold);display:block;}
 .sidebar-nav{display:flex;flex-direction:column;gap:4px;}
+.sidebar-section-title{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+  color:rgba(217,201,180,.5);padding:16px 12px 4px;
+}
+.sidebar-nav > .sidebar-section-title:first-child{padding-top:2px;}
 .sidebar-nav a{
   display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13.5px;font-weight:500;
   color:#D9C9B4;text-decoration:none;transition:background .15s,box-shadow .15s,color .15s;
@@ -192,6 +197,13 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13.5px;}
 .tag-delivered{background:linear-gradient(180deg,#EEF6EF,#E9F1EA);color:var(--sage);}
 .tag-not-delivered{background:linear-gradient(180deg,#FDEEEC,#FBEAE8);color:var(--danger);}
 .tag-swapped{background:linear-gradient(180deg,#F4EAF0,#F1E7EE);color:var(--wine);}
+/* Variantes genéricas de tag usadas pelos módulos internos (Pendências,
+   Lista de Espera, Atividades, Conteúdo, Equipe) — mesma linguagem visual
+   das tags de rota acima, só com nomes que não presumem contexto de rota. */
+.tag-success{background:linear-gradient(180deg,#EEF6EF,#E9F1EA);color:var(--sage);}
+.tag-cancel{background:linear-gradient(180deg,#FDEEEC,#FBEAE8);color:var(--danger);}
+.tag-info{background:linear-gradient(180deg,#F4EAF0,#F1E7EE);color:var(--wine);}
+.tag-neutral{background:linear-gradient(180deg,#F2EFEA,#EDEAE5);color:var(--muted);}
 
 .toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
