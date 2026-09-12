@@ -43,6 +43,8 @@
   .route-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
   .route-tab{font-family:'Poppins',sans-serif;font-weight:500;font-size:12.5px;padding:9px 16px;border-radius:20px;border:1px solid var(--line);background:var(--card-bg);color:var(--ink);cursor:pointer;white-space:nowrap;}
   .route-tab.active{border-color:var(--wine);background:var(--wine);color:#fff;font-weight:600;}
+  .route-tab-close{background:none;border:none;padding:0;margin-left:2px;font-size:11px;line-height:1;cursor:pointer;color:inherit;opacity:.6;}
+  .route-tab-close:hover{opacity:1;}
 
   /* ---------- Dividir rota: escolher o ponto de corte na própria lista ---------- */
   .split-divider{display:flex;align-items:center;gap:10px;margin:14px 0;}
@@ -414,6 +416,8 @@ async function init(){
   }
 
   document.getElementById('routeTabs').addEventListener('click', async (e) => {
+    const closeBtn = e.target.closest('[data-close-tab]');
+    if(closeBtn){ await performUndoSplit(); return; }
     const tabBtn = e.target.closest('.route-tab[data-tab]');
     if(tabBtn) await switchTab(tabBtn.dataset.tab);
   });
@@ -509,7 +513,9 @@ function renderTabs(){
   bar.style.display = 'flex';
   bar.innerHTML = splitPair.map(r => {
     const doneMark = r.status === ROUTE_STATUS.FINALIZADA ? ' ✓' : '';
-    return `<button class="route-tab ${activeTab===r.id?'active':''}" data-tab="${r.id}">Rota ${r.seq}${doneMark}</button>`;
+    return `<span class="route-tab ${activeTab===r.id?'active':''}" data-tab="${r.id}">Rota ${r.seq}${doneMark}
+      <button type="button" class="route-tab-close" data-close-tab="${r.id}" title="Cancelar divisão (juntar de volta numa rota só)">✕</button>
+    </span>`;
   }).join('');
 }
 
@@ -1353,7 +1359,10 @@ async function performResplit(k){
   renderAll();
 }
 
-document.getElementById('undoSplitBtn').addEventListener('click', async () => {
+// junta as duas metades de volta numa rota só, preservando a ordem
+// original dos pedidos — usada pelo botão "Desfazer divisão" e pelo x
+// de fechar em cada aba (mesma ação, dois jeitos de chegar nela).
+async function performUndoSplit(){
   const [r1, r2] = splitPair;
   const origin = r1.orders[0], destination = r2.orders[r2.orders.length-1];
   const combined = [...r1.orders.slice(1,-1), ...r2.orders.slice(1,-1)];
@@ -1368,7 +1377,8 @@ document.getElementById('undoSplitBtn').addEventListener('click', async () => {
   showToast('Divisão desfeita');
   await refreshRouteState(r1.id);
   renderAll();
-});
+}
+document.getElementById('undoSplitBtn').addEventListener('click', performUndoSplit);
 
 // ---------- CONCLUIR / REABRIR ROTA ----------
 // Marca a rota selecionada como concluída, salva os dados finais (km,
