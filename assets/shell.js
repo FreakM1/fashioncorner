@@ -1,11 +1,48 @@
 // Shell de navegação (sidebar + topbar) compartilhado por todas as
 // páginas do painel. Cada página só chama renderShell({active, title, subtitle}).
-const NAV_ITEMS = [
-  { key: 'dashboard', href: 'dashboard.html', icon: '&#9635;', label: 'Dashboard' },
-  { key: 'rota', href: 'rota-do-dia.html', icon: '&#9679;', label: 'Rota do Dia' },
-  { key: 'historico', href: 'historico.html', icon: '&#9776;', label: 'Histórico de Rotas' },
-  { key: 'config', href: 'configuracoes.html', icon: '&#9881;', label: 'Configurações' },
+//
+// Estrutura preparada para o menu futuro (Visão Geral / Operação / Gestão /
+// Administração). Itens cujas páginas ainda não existem ficam comentados
+// abaixo — descomentar apenas quando a página correspondente for criada,
+// pra nunca gerar link quebrado.
+const NAV_GROUPS = [
+  {
+    section: null,
+    items: [
+      { key: 'dashboard', href: 'dashboard.html', icon: '&#9635;', label: 'Visão Geral' },
+    ]
+  },
+  {
+    section: 'Operação',
+    items: [
+      { key: 'rota', href: 'rota-do-dia.html', icon: '&#9679;', label: 'Rota do Dia' },
+      { key: 'historico', href: 'historico.html', icon: '&#9776;', label: 'Histórico de Rotas' },
+      // Futuro — páginas ainda não existem:
+      // { key: 'pendencias', href: 'pendencias.html', icon: '&#9888;', label: 'Pendências' },
+      // { key: 'espera', href: 'lista-espera.html', icon: '&#9203;', label: 'Lista de Espera' },
+      // { key: 'atividades', href: 'atividades.html', icon: '&#9998;', label: 'Atividades' },
+    ]
+  },
+  {
+    section: 'Gestão',
+    items: [
+      // Futuro — páginas ainda não existem:
+      // { key: 'financeiro', href: 'financeiro.html', icon: '&#36;', label: 'Financeiro' },
+      // { key: 'conteudo', href: 'conteudo.html', icon: '&#128196;', label: 'Conteúdo' },
+    ]
+  },
+  {
+    section: 'Administração',
+    items: [
+      // Futuro — página ainda não existe:
+      // { key: 'equipe', href: 'equipe.html', icon: '&#128101;', label: 'Equipe' },
+      { key: 'config', href: 'configuracoes.html', icon: '&#9881;', label: 'Configurações' },
+    ]
+  },
 ];
+
+// Lista achatada (mantida por compatibilidade, caso algo dependa do formato antigo).
+const NAV_ITEMS = NAV_GROUPS.flatMap(g => g.items);
 
 function renderShell({ active, title, subtitle }){
   document.title = title + ' — Fashion Corner';
@@ -14,10 +51,13 @@ function renderShell({ active, title, subtitle }){
   sidebar.innerHTML = `
     <div class="sidebar-logo">FASHION<span>CORNER</span></div>
     <nav class="sidebar-nav">
-      ${NAV_ITEMS.map(item => `
-        <a href="${item.href}" class="${item.key === active ? 'active' : ''}">
-          <span class="icon">${item.icon}</span><span class="label">${item.label}</span>
-        </a>`).join('')}
+      ${NAV_GROUPS.filter(group => group.items.length > 0).map(group => `
+        ${group.section ? `<div class="sidebar-section">${group.section}</div>` : ''}
+        ${group.items.map(item => `
+          <a href="${item.href}" class="${item.key === active ? 'active' : ''}">
+            <span class="icon">${item.icon}</span><span class="label">${item.label}</span>
+          </a>`).join('')}
+      `).join('')}
     </nav>
     <div class="sidebar-account">
       <div class="sidebar-account-email" id="sidebarAccountEmail">&nbsp;</div>

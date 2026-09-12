@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard</title>
+<title>Visão Geral</title>
 <link rel="stylesheet" href="assets/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="assets/supabase-config.js"></script>
@@ -14,9 +14,7 @@
   .bar-chart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:6px;}
   .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
   .bar{width:100%;max-width:26px;background:var(--wine);border-radius:5px 5px 0 0;min-height:2px;}
-  .bar-day{font-size:10.5px;color:var(--muted);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
-  .promo-card{background:linear-gradient(135deg,var(--wine) 0%,var(--wine-dark) 100%);color:#fff;border-radius:14px;padding:22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
-  .promo-card h3{font-family:'Fraunces',serif;font-size:19px;margin:0;font-weight:600;}
+  .bar-day{font-size:10.5px;color:var(--muted);margin-top:6px;font-family:'Poppins',sans-serif;font-weight:500;}
 </style>
 </head>
 <body>
@@ -44,15 +42,9 @@
         </div>
       </div>
 
-      <div class="grid2">
-        <div class="promo-card">
-          <h3>Moda que movimenta histórias</h3>
-          <span style="font-size:22px;">♥</span>
-        </div>
-        <div class="card">
-          <div class="card-title">Última rota finalizada</div>
-          <div id="lastRouteBody"></div>
-        </div>
+      <div class="card">
+        <div class="card-title">Última rota finalizada</div>
+        <div id="lastRouteBody"></div>
       </div>
 
     </div>
@@ -64,7 +56,7 @@
 <script src="assets/shared.js"></script>
 <script src="assets/shell.js"></script>
 <script>
-renderShell({ active: 'dashboard', title: 'Dashboard', subtitle: 'Visão geral das entregas e rotas' });
+renderShell({ active: 'dashboard', title: 'Visão Geral', subtitle: 'Acompanhe a operação, pendências e atividades da Fashion Corner.' });
 
 function fmtDuration(totalMin){
   const h = Math.floor(totalMin/60); const m = Math.round(totalMin%60);
@@ -144,7 +136,7 @@ async function init(){
   } else {
     const s = summarizeRoute(last);
     lastBody.innerHTML = `
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">${last.date.split('-').reverse().join('/')} · Rota ${last.seq}</div>
+      <div style="font-family:'Poppins',sans-serif;font-weight:500;font-size:11px;color:var(--muted);">${last.date.split('-').reverse().join('/')} · Rota ${last.seq}</div>
       <p class="note" style="margin-top:8px;">${s.paradas} paradas · ${s.km.toFixed(1).replace('.',',')} km · ${s.entregas} entregas · ${s.trocas} trocas${s.naoEntregues ? ' · ' + s.naoEntregues + ' não entregue(s)' : ''}</p>
       <a href="rota-detalhes.html?id=${last.id}" class="btn btn-outline" style="margin-top:10px;">Ver detalhes</a>`;
   }
