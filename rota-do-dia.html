@@ -38,13 +38,11 @@
   .route-badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
   .eta-badge{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--sage);background:#E9F1EA;padding:4px 10px;border-radius:20px;margin-top:6px;}
   .kpi-note{font-size:11px;color:var(--muted);margin-top:4px;}
-  .move-select{margin-top:4px;font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid var(--line);background:#fff;max-width:128px;}
 
-  /* ---------- Abas de rota ---------- */
+  /* ---------- Abas de rota (só aparecem depois de "Dividir rota") ---------- */
   .route-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
   .route-tab{font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:8px 14px;border-radius:20px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;white-space:nowrap;}
   .route-tab.active{border-color:var(--wine);background:var(--wine);color:#fff;}
-  .route-tab-new{border-style:dashed;color:var(--muted);}
 
   /* ---------- Adicionar parada (ex-Pedido Rápido) ---------- */
   .addstop-grid{display:grid;grid-template-columns:1.3fr 0.9fr;gap:18px;align-items:start;}
@@ -92,18 +90,19 @@
     <div class="page">
 
       <div id="migratedBanner" class="banner" style="display:none;"></div>
+      <div id="finishedBanner" class="banner" style="display:none;background:#E9F1EA;border-color:var(--sage);"></div>
       <div id="intervalWarning" class="banner" style="display:none;"></div>
 
-      <div class="route-tabs" id="routeTabs"></div>
+      <div class="route-tabs" id="routeTabs" style="display:none;"></div>
 
-      <div class="kpi-grid route-only">
+      <div class="kpi-grid">
         <div class="kpi-card"><div class="kpi-label">Saída</div><div class="kpi-value" id="kpiSaida">—</div></div>
         <div class="kpi-card"><div class="kpi-label">Retorno previsto</div><div class="kpi-value" id="kpiRetorno">—</div></div>
         <div class="kpi-card"><div class="kpi-label">Paradas</div><div class="kpi-value" id="kpiParadas">0</div></div>
         <div class="kpi-card"><div class="kpi-label">Km estimado</div><div class="kpi-value" id="kpiKm">—</div><div class="kpi-note" id="kpiTempo"></div></div>
       </div>
 
-      <div class="card route-only" id="routeConfigCard">
+      <div class="card" id="routeConfigCard">
         <div class="card-title">Configuração da rota</div>
         <label class="f-label">Horário de saída</label>
         <input type="time" id="saidaInput" style="max-width:160px;">
@@ -119,12 +118,22 @@
         </div>
       </div>
 
+      <div class="card" id="splitPanel" style="display:none;">
+        <div class="card-title" id="splitPanelTitle">Dividir rota</div>
+        <p class="note" style="margin:0 0 8px;">As duas partes passam a sair e retornar à loja separadamente.</p>
+        <label class="f-label">Dividir depois de</label>
+        <select id="splitPointSelect"></select>
+        <div class="form-actions">
+          <button class="btn btn-dark" id="splitConfirmBtn">Confirmar</button>
+          <button class="btn btn-outline" id="splitCancelBtn">Cancelar</button>
+        </div>
+      </div>
+
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div class="card-title" style="margin:0;flex:1;">Adicionar parada</div>
           <button class="btn btn-outline" id="toggleAddStop" style="padding:6px 12px;font-size:12px;">Ocultar</button>
         </div>
-        <p class="note" style="margin-top:6px;">Toda parada nova entra na aba "Não atribuídos" — depois mova para a rota certa.</p>
         <div id="addStopBody" style="display:block;margin-top:16px;">
           <div class="addstop-grid">
             <div>
@@ -276,10 +285,13 @@
       <div class="grid2">
         <div>
           <div class="card">
-            <div class="btn-row route-only" id="routeActionsRow" style="margin-bottom:14px;">
+            <div class="btn-row" id="routeActionsRow" style="margin-bottom:14px;flex-wrap:wrap;">
               <button class="btn btn-outline" id="organizeBtn">Organizar rota</button>
               <button class="btn btn-ghost" id="copyBtn">Copiar para motoboy</button>
               <button class="btn btn-ghost" id="mapsBtn">Abrir no Maps</button>
+              <button class="btn btn-outline" id="splitBtn">Dividir rota</button>
+              <button class="btn btn-outline" id="resplitBtn" style="display:none;">Mudar ponto de corte</button>
+              <button class="btn btn-outline" id="undoSplitBtn" style="display:none;">Desfazer divisão</button>
               <button class="btn btn-dark" id="finalizeBtn" style="margin-left:auto;">Concluir rota</button>
               <button class="btn btn-outline" id="reopenRouteBtn" style="display:none;margin-left:auto;">Reabrir rota</button>
             </div>
@@ -289,7 +301,7 @@
             </div>
           </div>
         </div>
-        <div class="route-only">
+        <div>
           <div class="card">
             <div class="card-title">Mapa da rota</div>
             <iframe id="routeMap" class="route-map" style="display:none;"></iframe>
@@ -307,25 +319,29 @@
 <script src="assets/shared.js"></script>
 <script src="assets/shell.js"></script>
 <script>
-renderShell({ active: 'rota', title: 'Rota do Dia', subtitle: 'Organize e finalize as rotas de hoje' });
+renderShell({ active: 'rota', title: 'Rota do Dia', subtitle: 'Monte, divida e finalize a rota de hoje' });
 
 const DEFAULT_CLIENTS = [{"n":"LUANA DAMACENO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Avenida Ary Rodrigues, 315 - Parque das Camelias, Campinas - SP, 13052-550","x":"Bloco 01 - Apto 42","o":"","p":true}]},{"n":"RAFAELA VENANCIO","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Sempre Vivas, 433 - Jardim Sao Sebastiao, Hortolândia - SP","x":"","o":"","p":true},{"t":"Casa","e":"R. Maria Julinda de Pina Pereira, 794 - JARDIM FIGUEIRAS II, Hortolândia - SP, 13184-248","x":"","o":"","p":false}]},{"n":"SANDRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Anita Moretzsohn, 7 - Jardim Santana, Campinas - SP, 13088-603","x":"","o":"","p":true}]},{"n":"SILMARA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Joel Martins dos Santos, 441 - Jardim Itaguacu II, Campinas - SP, 13053-196","x":"","o":"Casa de esquina","p":true}]},{"n":"RENATA FERNANDES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Maria Edna Vilagelin Zakia, 485 - Parque Via Norte, Campinas - SP, 13065-640","x":"Maria's Bowl ","o":"Sorveteria ","p":true}]},{"n":"GABRIELLY PAULA","f":"19993700820","c":"Campinas","a":[{"t":"Trabalho","e":"QEntrega, R. Sylvia da Silva Braga, 415 - Jardim Santa Monica, Campinas - SP, 13082-080","x":"","o":"Empresa Azul","p":true}]},{"n":"GABRIELA LIMA","f":"19982591927","c":"Campinas","a":[{"t":"Trabalho","e":"R. Amélia Bueno, 301 - Taquaral, Campinas - SP, 13076-050","x":"Espaço 301 de Eventos ","o":"Ao lado do posto de gasolina","p":true}]},{"n":"GLEICA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Ame Concept","o":"","p":true},{"t":"Outro","e":"Av. José Bonifácio, 2120 - Jardim das Paineiras, Campinas - SP, 13092-305","x":"","o":"","p":false}]},{"n":"JILSANDRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Maria Grassi Sinigaglia, 128 - Recanto Fortuna, Campinas - SP, 13082-572","x":"Bloco C - Apto 41","o":"","p":true}]},{"n":"TAIRINY LEAL","f":"19995094435","c":"Campinas","a":[{"t":"Casa","e":"R. Jorn Ernesto Nápoli, 1120 - Jardim Campos Elíseos, Campinas - SP, 13060-072","x":"Bloco 04 - Apto 13","o":"","p":true}]},{"n":"PAMELLA CANDIDO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Sacramento, 750 - Centro, Campinas - SP, 13023-185","x":"Apto 127","o":"","p":true}]},{"n":"PAMELA CRISTINA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Angicos, 125 - Vila Boa Vista, Campinas - SP, 13064-788","x":"","o":"","p":true}]},{"n":"HAYALA BRITO","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. dos Estudantes, 505 - Jardim do Bosque, Hortolândia - SP, 13186-170","x":"Torre 02 - Apto 235","o":"","p":true},{"t":"Trabalho","e":" Av. dos Pioneiros, 430 - Santa Terezinha, Paulínia - SP, 13140-000","x":"MK Nakashima Beauty Salon","o":"","p":false},{"t":"Trabalho","e":"R. 7 de Setembro, 350 - Parque Ortolândia, Hortolândia - SP, 13184-000","x":"MANICURE","o":"","p":false}]},{"n":"DANY GERMANO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Ângelo Simões, 964 - Jardim Leonor, Campinas - SP, 13041-150","x":"","o":"","p":true}]},{"n":"MIRIAM JUNQUEIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Francisco de Paula Oliveira Nazareth, 570 - Parque Industrial, Campinas - SP, 13031-440","x":"","o":"","p":false},{"t":"Casa","e":"Av. das Amoreiras, 633 - Parque Italia, Campinas - SP, 13036-225","x":"Torre 01 - Apto 53","o":"","p":true}]},{"n":"ELUANE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. José Leite Penteado, 670 - Jardim Campo Belo, Campinas - SP, 13053-142","x":"","o":"","p":true}]},{"n":"KAREN QUITABATAQUE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Fernão Pompeu de Camargo, 2171 - Jardim do Trevo, Campinas - SP, 13040-010","x":"Serraf autopeças ","o":"","p":true}]},{"n":"INGRID CAROLINE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua das Oliveiras, 201 - Parque Via Norte, Campinas - SP, 13064-772","x":"","o":"","p":true}]},{"n":"GLAUCIA","f":"","c":"Campinas","a":[{"t":"Outro","e":"R. Antônio Maria Brandão, 83 - Jardim Eulina, Campinas - SP, 13063-070","x":"","o":"","p":true},{"t":"Outro","e":"Condominio Colinas de Monaco - R. Um, 45 - Jardim Nova abolição, Campinas - SP, 13046-491","x":"","o":"","p":false}]},{"n":"NATHALIA AVANÇO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. José Galgano, 57 - Parque Via Norte, Campinas - SP, 13065-050","x":"Casa 57 B","o":"","p":true}]},{"n":"LOUISE FARIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Francisco de Assis Pupo, 507 - Vila Industrial (Campinas), Campinas - SP, 13035-000","x":"Apto 32","o":"","p":true}]},{"n":"PATRICIA JULIANA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. São Cosme, 05 - Jardim Santa Terezinha (Nova Veneza), Sumaré - SP, 13180-310","x":"Bloco 4 - Apto 32","o":"","p":true}]},{"n":"MARIA LUIZA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Aristeu Augusto, 146 - Parque Via Norte, Campinas - SP, 13065-230","x":"","o":"","p":true},{"t":"Casa","e":"R. Eduardo García, 167 - Parque Via Norte, Campinas - SP, 13065-706","x":"","o":"","p":false}]},{"n":"BRUNA KAROLINE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Gil Vicente, 600 - Jardim Nossa Sra. Auxiliadora, Campinas - SP, 13067-000","x":"Dona Baunilha ","o":"","p":true}]},{"n":"BEATRIZ SILVA","f":"19995358445","c":"Campinas","a":[{"t":"Casa","e":"R. Papa São Fabião, 455 - Conj. Hab. Padre Anchieta, Campinas - SP","x":"Condominio não tem portaria ","o":"","p":true},{"t":"Trabalho","e":"CEI SÃO BENTO, Rua Ovídio Coluccini - Conj. Res. Parque Sao Bento, Campinas - SP, 13058-148","x":"Creche.","o":"","p":false}]},{"n":"BIANCA MOREIRA","f":"19983127822","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED ","o":"","p":true}]},{"n":"VANUZA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Domingos Stivalle, 36 - Parque Via Norte, Campinas - SP, 13065-051","x":"","o":"","p":true}]},{"n":"ALESSANDRA MOREIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Rev Constâncio Homero Ômega, 474 - Cidade Jardim, Campinas - SP, 13050-434","x":"","o":"","p":true}]},{"n":"THAINA COELHO","f":"19998010103","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED ","o":"","p":true},{"t":"Casa","e":"R. Joaquim Domingos de Oliveira, 92 - Chácaras Fazenda Coelho, Hortolândia - SP, 13185-502","x":"Bloco 4 - Apto 303","o":"","p":false}]},{"n":"CARLA FELL","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Dr. Albano de Almeida Lima, 489 - Jardim Guanabara, Campinas - SP, 13073-131","x":"Visage Estética","o":"","p":true}]},{"n":"HELLEN TAJRA","f":"19987087412","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 3345 - Jardim Campinas, Campinas - SP, 13076-269","x":"","o":"","p":true}]},{"n":"LARISSA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Francisco Mesquita, 110 - Vila Brandina, Campinas - SP, 13092-511","x":"","o":"","p":true}]},{"n":"JHENIFFER COSTA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Adão Hofman, 44 - Vila Industrial (Campinas), Campinas - SP, 13035-010","x":"","o":"","p":true},{"t":"Trabalho","e":"R. Aristeu Augusto, 146 - Parque Via Norte, Campinas - SP, 13065-230","x":"","o":"","p":false}]},{"n":"MARINA SANTANA","f":"19984448166","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED ","o":"","p":true}]},{"n":"CAMILA BERNARDES","f":"19993260048","c":"Campinas","a":[{"t":"Trabalho","e":"R. Henrique Veiga, 5 - Jardim Santa Genebra, Campinas - SP, 13080-290","x":"LUXOTTICA","o":"","p":true}]},{"n":"JULIA NOLETO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED","o":"","p":true}]},{"n":"GABRIELA TALPO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Monte Castelo, 307 - Jardim Proença, Campinas - SP, 13026-241","x":"","o":"","p":true}]},{"n":"BIANCA LANGE","f":"","c":"Sumaré","a":[{"t":"Casa","e":"Av. Emílio Bôsco, 1745 - Jardim Lucia (Nova Veneza), Sumaré - SP","x":"Bloco 2 - Apto 36","o":"","p":true}]},{"n":"JADE CRISTINA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Dom Barreto, 290 - Centro, Sumaré - SP, 13170-002","x":"Apto 108","o":"","p":true}]},{"n":"JESSICA PAULA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"PATRICIA DIAS","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"RENATA PEREIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Governador Pedro de Toledo, 2436 - Bonfim, Campinas - SP, 13070-715","x":"VS Espuma ","o":"William que recebe ","p":true}]},{"n":"LETICIA SANTIAGO","f":"19996759854","c":"Campinas","a":[{"t":"Casa","e":"Av. Mal. Rondon, 1322 - Jardim Quarto Centenário, Campinas - SP, 13070-173","x":"","o":"","p":false},{"t":"Trabalho","e":"R. Mário Siqueira, 832 - Botafogo, Campinas - SP, 13020-210","x":"","o":"","p":true}]},{"n":"CATHARINA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Mal. Rondon, 1638 - Jardim Chapadão, Campinas - SP, 13070-176","x":"Elite Academia ","o":"","p":true}]},{"n":"INGRID BUENO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Papa João Paulo II, 1068 - Conj. Hab. Padre Anchieta, Campinas - SP, 13068-219","x":"Loja de roupa - TRAKINAS","o":"","p":true}]},{"n":"TALITA MENDES","f":"19984056029","c":"Campinas","a":[{"t":"Casa","e":"R. Leonor Santos, 8 - Recanto do Sol I, Campinas - SP, 13056-524","x":"","o":"","p":true},{"t":"Trabalho","e":"Av. Dr. Romeu Tortima, 452 - Jardim Santa Genebra II (Barao Geraldo)","x":"","o":"","p":false}]},{"n":"CARLA MALTA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. José Carlos de Oliveira Brito, 19 - Res. Nova Bandeirante, Campinas - SP, 13052-625","x":"","o":"","p":true},{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151","x":"EMBRACON","o":"","p":false}]},{"n":"PATRICIA VETTE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. João Carlos Nougues, 1015 - Jardim do Lago, Campinas - SP, 13050-011","x":"","o":"","p":true}]},{"n":"VIVIANE SAVI","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Coronel Quirino, 1275 - Centro, Campinas - SP, 13025-002","x":"","o":"","p":true}]},{"n":"ADRIANA LOPES","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Av. Santana, 1520 - Jardim Amanda I, Hortolândia - SP, 13188-000","x":"Torre 01 - Apto 1203","o":"","p":true},{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151 | Time Center (Empresa Embracon)","x":"EMBRACON","o":"","p":false}]},{"n":"ADRIANA NABOR","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Av. Santana, 1520 - Jardim Amanda I, Hortolândia - SP, 13188-000","x":"Torre 01 - Apto 202 ","o":"","p":true},{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151","x":"EMBRACON","o":"","p":false}]},{"n":"HELEN CRISTINA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. José Fonseca de Arruda, 606 - Jardim dos Oliveiras, Campinas - SP, 13044-130","x":"","o":"","p":true}]},{"n":"MARIANA MITICA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Ana Téles Moreira, 293 - Jardim Samambaia, Campinas - SP, 13046-505","x":"Salão de beleza ","o":"","p":true},{"t":"Casa","e":"Rua Antonieta Quattrer Serra, 157 - Pte. Preta, Campinas - SP, 13046-105","x":"","o":"","p":false}]},{"n":"GABRIELA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Vitor Meirelles, 375 - Jardim Samambaia, Campinas - SP, 13046-545","x":"Bloco 2 - Apto 124","o":"","p":true}]},{"n":"CAMILA VIEIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Anita Moretzsohn, 7 - Jardim Santana, Campinas - SP, 13088-603","x":"","o":"","p":true},{"t":"Casa","e":"R. Peró de Campos Tourinho, 65 - Parque Taquaral, Campinas - SP, 13087-016","x":"","o":"","p":false}]},{"n":"JULIA ROMANO","f":"19974073066","c":"Campinas","a":[{"t":"Trabalho","e":"R. Maria Monteiro, 1599 - Cambuí, Campinas - SP, 13025-152","x":"Veterinario ","o":"porta preta na lateral","p":true},{"t":"Casa","e":"Av. das Amoreiras, 4001 - Vila Mimosa, Campinas - SP, 13050-055","x":"TORRE 3 - APTO 117","o":"","p":false}]},{"n":"CORREIO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. João Erbolato, 288 - Jardim Chapadão, Campinas - SP, 13070-070","x":"","o":"","p":true}]},{"n":"GRENDA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Cad Dirceu Vedovelho, 47 - Conj. Hab. Parque da Floresta, Campinas - SP, 13058-134","x":"","o":"","p":true}]},{"n":"HAYME BRITO","f":"","c":"Hortolândia","a":[{"t":"Trabalho","e":"R. 7 de Setembro, 350 - Parque Ortolândia, Hortolândia - SP, 13184-000","x":"Manicure ","o":"","p":true}]},{"n":"PAULA PAVAN","f":"","c":"Valinhos","a":[{"t":"Casa","e":"R. Dr. Antônio de Castro Prado, 349 - Vila Clayton, Valinhos - SP, 13276-090","x":"","o":"","p":true}]},{"n":"SARAH BELINTANI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Caetés, 141 - Vila Costa e Silva, Campinas - SP, 13081-210","x":"","o":"","p":false},{"t":"Trabalho","e":"R. Camargo Pimentel, 424 - Jardim Guanabara, Campinas - SP, 13073-340","x":"","o":"","p":true}]},{"n":"POLIANA CARDELI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Antônia Ribeiro de Lima, 26 - Parque São Jorge, Campinas - SP, 13064-832","x":"Bloco H - Apto 33","o":"","p":true}]},{"n":"ANA CAROLINE VERONEZI","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Santa Rita do Passa Quatro, 85 - Jardim Nova Europa, Campinas - SP, 13040-108","x":"Bloco 03 - Apto 705","o":"","p":true}]},{"n":"NATALIA DE RIZ","f":"19993030133","c":"Hortolândia","a":[{"t":"Casa","e":"R. Venezuela, 270 - Jardim Santa Clara do Lago II, Hortolândia - SP, 13186-472","x":"Bloco i - Apto 51","o":"","p":true}]},{"n":"FERNANDA MOREIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Adalberto Patrocínio de Araújo, 108 - Jardim Sao Domingos, Campinas - SP, 13053-314","x":"","o":"","p":true}]},{"n":"GABRIELI ZORZANELLO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Cormorão, 143 - Vila Padre Manoel de Nobrega, Campinas - SP, 13061-351","x":"Bloco B - Apto 13","o":"","p":true}]},{"n":"LUCILEIDE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 3345 - Jardim Campinas, Campinas - SP, 13076-269","x":"","o":"","p":true}]},{"n":"BRUNA FAIS","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. dos Alecrins, 246 - Cambuí, Campinas - SP, 13024-411","x":"Apto 61.","o":"","p":true}]},{"n":"GABRIELA MATIAZZI","f":"11939440409","c":"Campinas","a":[{"t":"Casa","e":"R. Rodrigo Otávio, 214 - Botafogo, Campinas - SP, 13020-390","x":"Apto 44","o":"","p":true}]},{"n":"TAMIRES PARIZ","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Ana Beatriz Bierrembach, 506 - Vila Mimosa, Campinas - SP, 13050-060","x":"MC TOTAL VEÍCULOS","o":"","p":true}]},{"n":"PALOMA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Salgueiros, 123 - Vila Boa Vista, Campinas - SP, 13064-741","x":"","o":"","p":true}]},{"n":"MANUELA PAZETTI","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Carolina Pasquim Antonioli, 215 - Barão Geraldo, Campinas - SP, 13084-180","x":"","o":"","p":true}]},{"n":"IDERLEI JUNIOR","f":"","c":"","a":[{"t":"Casa","e":"Casa (R. Ana Borges Orsolini, 564 - Parque Via Norte)","x":"Sala 103","o":"Predio torre do castelo ","p":true}]},{"n":"PAMELA MOREIRA","f":"19982668017","c":"Campinas","a":[{"t":"Casa","e":"R. Antônio Rodrigues Moreira Neto, 144 - Jardim Pauliceia, Campinas - SP, 13060-073","x":"","o":"","p":true},{"t":"Trabalho","e":"Av. John Dalton, 301 - Techno Park, Campinas - SP, 13069-330","x":"","o":"Condominio Techno Plaza - Daterra","p":false}]},{"n":"KAROLINE GREGO","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. José dos Passos, 544 - Jardim São Domingos, Sumaré - SP, 13174-070","x":"Casa de fundo portão pequeno","o":"","p":true}]},{"n":"HADASSA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Prof. Vicente Ferreira Bueno, 477 - Jardim Campo Belo, Sumaré - SP, 13174-220","x":"","o":"","p":true}]},{"n":"JENIFFER PINHATI","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. São Cosme, 5 - Jardim Santa Terezinha (Nova Veneza), Sumaré - SP, 13180-290","x":"Bloco 30 - Apto 21","o":"","p":true}]},{"n":"GIOVANA BARBANTO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Elías Antônio Sayeg, 6 - Conj. Hab. Vila Reggio, Campinas - SP, 13067-630","x":"","o":"","p":true}]},{"n":"DANIELA BOTELHO","f":"19993569679","c":"Campinas","a":[{"t":"Casa","e":"R. Mauro Florêncio Moreno, 50 - Parque Via Norte, Campinas - SP, 13065-803","x":"","o":"","p":true}]},{"n":"BEATRIZ QUEZADA","f":"19971567693","c":"Campinas","a":[{"t":"Trabalho","e":"R. Frederico Ozanan, 67 - Vila Joaquim Inacio, Campinas - SP, 13045-640","x":"Loja Juarez","o":"","p":false},{"t":"Casa","e":"Av. das Andorinhas, 477 - Jardim Andorinhas, Campinas - SP, 13101-400","x":"Bloco T Ap 32","o":"","p":true}]},{"n":"DIELE LIMA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Brasil, 1163 - Jardim Guanabara, Campinas - SP, 13073-148","x":"UP formaturas","o":"","p":true}]},{"n":"RACHEL DA SILVA","f":"19997955223","c":"Campinas","a":[{"t":"Trabalho","e":"Samsonite, Av. Iguatemi, 777 - Vila Brandina, Campinas - SP, 13092-902","x":"","o":"","p":true}]},{"n":"VANESSA BRAMBILA","f":"19971291892","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Lauro Vannucci, 348 - Fazenda Santa Cândida, Campinas - SP, 13087-548","x":"","o":"","p":true},{"t":"Trabalho","e":"R. Júlio Tim, 600 - Jardim Ipaussurama, Campinas - SP, 13060-824","x":"Pastel do Renato","o":"","p":false},{"t":"Outro","e":"R. Dona Neuza Goulart Brizola, 101 - Parque Res. Vila União, Campinas - SP, 13060-766","x":"","o":"","p":false}]},{"n":"NICOLE TASSI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Júlio Tim, 396 - Jardim Ipaussurama, Campinas - SP, 13024-490","x":"Bloco H - Apto 44","o":"","p":true},{"t":"Trabalho","e":"Av. Pres. Juscelino, 2282 - Jardim Ipaussurama, Campinas - SP, 13060-524","x":"","o":"","p":false}]},{"n":"ANA POZZE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Mateus Macari, 175 - Parque Via Norte, Campinas - SP, 13065-030","x":"","o":"","p":true},{"t":"Casa","e":"R. Renato Ribeiro, 123 - Parque Via Norte, Campinas - SP, 13065-707","x":"Oficina","o":"","p":false}]},{"n":"LETICIA HARUMI","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Dr. Guilherme da Silva, 439 - Cambuí, Campinas - SP, 13025-070","x":"","o":"","p":true}]},{"n":"GEOVANA ARAUJO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Joaquim Novaes, 255 - Centro, Campinas - SP, 13015-140","x":"","o":"","p":true}]},{"n":"ANA JULIA MACHIAVELI","f":"19984470448","c":"Campinas","a":[{"t":"Casa","e":"Av. Pres. Juscelino, 2282 - Jardim Ipaussurama, Campinas - SP, 13060-524","x":"","o":"","p":true}]},{"n":"MAIRA MINCHIN","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151","x":"","o":"EMBRACON","p":true},{"t":"Casa","e":"R. Padre Almeida, 426 - Cambuí, Campinas - SP, 13025-251","x":"","o":"","p":false}]},{"n":"BIANCA POLIDORIO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Romeu Tortima, 452 - Jardim Santa Genebra II (Barao Geraldo), Campinas - SP, 13084-791","x":"","o":"","p":true}]},{"n":"LETICIA RODRIGUES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Imarés, 86 - Vila Costa e Silva, Campinas - SP, 13081-380","x":"","o":"","p":true}]},{"n":"MARIA ELIZANGELA","f":"19993021053","c":"Campinas","a":[{"t":"Casa","e":"Condomínio Machado de Assis, R. Olézio de Arruda Camargo, 216 - Dic IV (Conjunto Hab. Lech Walesa), Campinas - SP, 13054-442","x":"Bloco B - Apto 24","o":"","p":true}]},{"n":"IARA","f":"","c":"Paulínia","a":[{"t":"Casa","e":"R. Lourenço Ferrara, 783 - Parque Bom Retiro, Paulínia - SP, 13140-000","x":"","o":"","p":true}]},{"n":"CIBELLY","f":"","c":"Paulínia","a":[{"t":"Trabalho","e":"Av. dos Pioneiros, 430 - Santa Terezinha, Paulínia - SP, 13140-000","x":"MK Nakashima Beauty Salon","o":"","p":true}]},{"n":"VANDELA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"ANDREIA ZACARIAN","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Angicos, 125 - Vila Boa Vista, Campinas - SP, 13064-788","x":"","o":"","p":true}]},{"n":"BÁRBARA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Célso Luciano Fonseca, 16 - Dic III (Conjunto Hab. Ruy Novaes), Campinas - SP, 13054-232","x":"","o":"","p":true}]},{"n":"CARINE SIMÕES","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Barão de Itapura, 2999 - Jardim Nossa Sra. Auxiliadora, Campinas - SP, 13076-269","x":"","o":"","p":true}]},{"n":"STELLA SILVA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Joaquim Moura dos Santos, 196 - Parque Santo Antonio (Nova Veneza), Sumaré - SP, 13181-570","x":"","o":"","p":true}]},{"n":"STEFANIE CAROLINE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. José Bpo. Rodrigues, 258 - Vila Francisca, Campinas - SP","x":"","o":"","p":true}]},{"n":"DANIELA GONÇALVES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Edjer Alegreti, 33 - Parque Cidade Campinas, Campinas - SP, 13069-045","x":"","o":"","p":true}]},{"n":"ISADORA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Dr. Alberto Franco Lamunier, 1424 - Parque Via Norte, Campinas - SP, 13065-531","x":"Dismotor","o":"","p":true}]},{"n":"DETE","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Joaquim Moura dos Santos, 196 - Parque Santo Antonio (Nova Veneza), Sumaré - SP, 13181-570","x":"","o":"","p":true}]},{"n":"ELIZABETE BRITO","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Luiz Arten, 14 - Jardim Terras de Santo Antonio, Hortolândia - SP, 13185-541","x":"","o":"","p":true}]},{"n":"THALIA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Marrey Júnior, 535 - Jardim Novo Campos Eliseos, Campinas - SP, 13050-720","x":"","o":"","p":true}]},{"n":"Tayna Sousa","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Andrade Neves, 2181 - Centro, Campinas - SP, 13070-000","x":"","o":"","p":true}]},{"n":"JANAINA FETUCCIA","f":"19991321077","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"UNIMED","o":"","p":true},{"t":"Outro","e":"R. Luís Chinaglia, 112 - Vila Carlito, Campinas - SP, 13043-080","x":"CASA MÃE","o":"","p":false},{"t":"Casa","e":"R. Albatroz, 65 - Vila Padre Manoel de Nobrega, Campinas - SP, 13061-371","x":"Bloco J1 - Apto 01","o":"","p":false}]},{"n":"THAYNA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Condomínio Edifício Maceió, R. Alcides Fonseca Júnior, 60 - Dic I (Conjunto Hab. Monsenhor Luiz Fernan, Campinas - SP, 13056-343","x":"APTO 21","o":"","p":true}]},{"n":"FERNANDA FERREIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Barão de Itapura, 950 - Vila Itapura, Campinas - SP, 13020-431","x":"SALA 34","o":"","p":true}]},{"n":"LETICIA MORENO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Cauim, 416 - Parque Universitario de Viracopos, Campinas - SP, 13056-50","x":"","o":"","p":true}]},{"n":"PRISCILLA SABRINA","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Unique Residence - Hortolândia, R. Antônio Fernandes Leite, 1390 - Jardim Santa Izabel, Hortolândia - SP, 13185-530","x":"APTO 403 - BLOCO 1","o":"","p":true}]},{"n":"LETICIA BELO ALVES","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Chácara da Barra, Campinas - SP, 13092-001","x":"","o":"","p":true}]},{"n":"KATIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Nicarágua, 685 - Jardim do Trevo, Campinas - SP, 13040-030","x":"","o":"","p":true}]},{"n":"THAINARA SASAKI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Domingos Stivalle, 540 - Parque Via Norte, Campinas - SP, 13065-051","x":"","o":"","p":true}]},{"n":"ISABELA DE GRECI","f":"","c":"Campinas","a":[{"t":"Casa","e":"Avenida Francisco José de Camargo Andrade, 655, Campinas, 13070-055, SP","x":"","o":"","p":true}]},{"n":"MARIA MARTINS","f":"","c":"","a":[{"t":"Casa","e":"Rua Noemia Alves dos Santos, 9","x":"","o":"","p":true}]},{"n":"CAMILA MARTINS FERRAZ","f":"19995080030","c":"Campinas","a":[{"t":"Casa","e":"R. Fernão Pompeu de Camargo, 1650 - Jardim do Trevo, Campinas - SP, 13040-010","x":"","o":"","p":true}]},{"n":"DANIELE CAROLINE SETE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Prof. Ary Monteiro Galvāo, 460 - Vila Madalena, Campinas - SP, 13091-010","x":"","o":"","p":true},{"t":"Trabalho","e":"Av. Carlos Grimaldi, 627 - Jardim Conceição, Campinas - SP, 13091-000","x":"A Concept Hair","o":"","p":false},{"t":"Casa","e":"R. Manoel dos Santos, 261 - Parque Rural Fazenda Santa Cândida, Campinas - SP, 13087-549","x":"","o":"","p":false}]},{"n":"KAROL ARGENTINO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Gen. Osório, 2101 - Centro, Campinas - SP, 13025-155","x":"","o":"","p":true}]},{"n":"PAULA","f":"","c":"","a":[{"t":"Casa","e":"Av. Papa João Paulo I, 432 - Bairro das Palmeiras","x":"","o":"","p":true}]},{"n":"TELMA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Bernardo José Sampaio, 138 - Botafogo, Campinas - SP, 13020-450","x":"","o":"","p":true}]},{"n":"MARIA EDUARDA VENANCIO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Padre Bernardo da Silva, 259 - São Bernardo, Campinas - SP, 13030-710","x":"","o":"","p":true},{"t":"Trabalho","e":"R. São Luís do Paraitinga, 182 - São Bernardo, Campinas - SP, 13030-105","x":"","o":"","p":false}]},{"n":"MAIANE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Nicarágua, 685 - Jardim do Trevo, Campinas - SP, 13040-030","x":"","o":"","p":true}]},{"n":"ACSA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"","o":"","p":true}]},{"n":"BRUNA CRISTINA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Ótica Saron, Av. Mal. Rondon, 1912 - Jardim Chapadão, Campinas - SP, 13070-172","x":"Ótica Saron","o":"","p":true}]},{"n":"GIOVANA BERTINI","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Nova Campinas","x":"","o":"","p":true}]},{"n":"NAYARA AZEVEDO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Governador Pedro de Toledo, 976 - Bonfim, Campinas - SP, 13070-740","x":"","o":"","p":true}]},{"n":"ANGELINA PANUCCI","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. do Lírio dos Vales, 210 - Jardim Conceição, Hortolândia - SP, 13185-775","x":"","o":"","p":true}]},{"n":"KAROLAYNE LISNA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Viscondessa de Campinas, 363 - Nova Campinas, Campinas - SP, 13092-135","x":"","o":"","p":true}]},{"n":"MICHELE SILVA","f":"19993809058","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Albino J. B. de Oliveira, 856 - Barão Geraldo, Campinas - SP, 13084-551","x":"","o":"","p":true},{"t":"Casa","e":"Res. Quilombo II - Techno Park, Campinas - SP, 13069-387","x":"","o":"","p":false}]},{"n":"IARA SOUZA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Benedicto Gomes Ferreira, 345 - Parque Via Norte, Campinas - SP, 13065-020","x":"","o":"","p":true},{"t":"Outro","e":"Av. John Boyd Dunlop, 6811 - Cidade Satélite Íris, Campinas - SP, 13059-587","x":"","o":"","p":false}]},{"n":"DANIELA ROLIM","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Galleria Shopping, Av. Bailarina Selma Parada, s/n - Jardim Nilópolis, Campinas - SP, 13091-901","x":"","o":"","p":true}]},{"n":"THAMIRES FREITAS","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Quatorze de Dezembro, 55 - Centro, Campinas - SP, 13015-130","x":"APTO 906.","o":"","p":true}]},{"n":"BEATRIZ MICAELA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Diogo Álvares, 2415 - Parque São Quirino, Campinas - SP, 13088-221","x":"","o":"","p":true}]},{"n":"LAIS TAVARES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Walter Cristiano Garlipp, 80 - Dic VI (Conjunto Hab. Santo Dias Silva), Campinas - SP, 13054-672","x":"","o":"","p":true}]},{"n":"MILENA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Manoel Thomáz, 40 - Jardim Regina, Campinas - SP, 13067-230","x":"","o":"","p":true}]},{"n":"VIVIAN VANEGAS","f":"19989148225","c":"Campinas","a":[{"t":"Casa","e":"R. Sebastião Rosa, 53 - São Bernardo, Campinas - SP, 13030-590","x":"","o":"","p":true}]},{"n":"LETICIA CORDEIRO DA SILVA","f":"19982836681","c":"Campinas","a":[{"t":"Casa","e":"R. José Custódio de Oliveira, 218 - Parque Jambeiro, Campinas - SP, 13042-470","x":"","o":"","p":true}]},{"n":"BRUNA ROHWEDDER","f":"","c":"","a":[{"t":"Casa","e":"R. Orlindo Marçal de Oliveira Vale, 39 - Jardim das Bandeiras","x":"BLOCO M, APTO 402","o":"","p":true}]},{"n":"MARIA EDUARDA MAGLIONI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Maj. Solon, 635 - Cambuí, Campinas - SP, 13024-091","x":"APTO 91","o":"","p":true}]},{"n":"MARIANA EDUARDA VEIGA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Fernão Pompeu de Camargo, 1437 - Jardim do Trevo, Campinas - SP, 13040-010","x":"","o":"CASA DAS ENGRENAGENS","p":true}]},{"n":"AGATA LIRA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"Av. Ipê Roxo, 610 - Parque Villa Flores, Sumaré - SP, 13175-658","x":"CASA 77","o":"Condomínio das Rosas/ Dentro do Condominio Vila Flora","p":true}]},{"n":"LETICIA BARRAVIEIRA","f":"19981336887","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Caio Pinto Guimarães - Campinas, SP","x":"PRÉDIO ANTIGA REITORIA S/N","o":"","p":true}]},{"n":"ANA CAROLINA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Alaor Malta Guimarães, 40 - Botafogo, Campinas - SP, 13020-081","x":"APTO 192","o":"","p":true}]},{"n":"KEYLA TATYELE","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Santo Agostinho, 550 - Jardim das Oliveiras (Nova Veneza), Sumaré - SP, 13180-200","x":"","o":"","p":true}]},{"n":"ELISE ROSA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Condomínio Allegro Residencial de Campinas, Av. Império do Sol Nascente, 581 - Jardim Aurelia, Campinas - SP, 13033-050","x":"TORRE B - APTO 123","o":"","p":true}]},{"n":"ALINE","f":"","c":"Campinas","a":[{"t":"Outro","e":"Av. Homero Vasconcelos de Souza Camargo, 271 - Jardim Ipaussurama, Campinas - SP, 13060-830","x":"","o":"","p":true}]},{"n":"GABRIELA FERNANDES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Eldorado, 950 - Lot. e Arruamento Telesp, Campinas - SP, 13052-470","x":"EMPRESA THERMO KLIMA","o":"","p":true}]},{"n":"MARIA EDUARDA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Luiz Libermann, 277 - Jardim Pauliceia, Campinas - SP, 13060-079","x":"","o":"","p":true}]},{"n":"ALINE BERTOLDO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Dr. Souza Ribeiro, 362 - Vila Satúrnia, Campinas - SP, 13031-095","x":"","o":"","p":true}]},{"n":"ANANDA VIEIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Ângelo Simões, 964 - Jardim Leonor, Campinas - SP, 13041-150","x":"","o":"","p":true}]},{"n":"ELENITA","f":"19996155407","c":"Campinas","a":[{"t":"Casa","e":"Av. Washington Luíz, 814 - Jardim Leonor, Campinas - SP, 13041-005","x":"PORTA DE CANTO AO LADO DA FARMÁCIA","o":"Avisar que chegou pelo telefone, não interfonar.","p":true}]},{"n":"JENIFFER FERNANDES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. das Amoreiras, 3130 - Jardim do Lago, Campinas - SP, 13050-035","x":"ODONTOCLINIC","o":"","p":true}]},{"n":"THAMIRES CORREA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua Dona Rosa de Gusmão, 670 - Jardim Chapadão, Campinas - SP, 13073-141","x":"","o":"","p":true}]},{"n":"NIDIANE","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. John Boyd Dunlop, 131 - Vila Teixeira, Campinas - SP, 13032-377","x":"Loja 161 A - Manicure","o":"DENTRO DA BARBEARIA","p":true},{"t":"Outro","e":"Av. Dr. Carlos de Campos, 750 - Vila Industrial (Campinas), Campinas - SP, 13035-610","x":"","o":"","p":false}]},{"n":"MARIANA FREITAS","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Sebastião Teixeira, 44 - Res. Parque Pavan, Sumaré - SP, 13179-394","x":"","o":"","p":true}]},{"n":"ELZA PÁDUA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Frei Antônio de Pádua, 975 - Jardim Guanabara, Campinas - SP, 13073-330","x":"","o":"","p":true}]},{"n":"JULIA MELATO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Osvualte Darri, 28 - Villa Garden, Campinas - SP, 13031-392","x":"Apto 603, Torre 1.","o":"","p":true}]},{"n":"JULIA SAMPAIO","f":"19990133553","c":"Campinas","a":[{"t":"Casa","e":"R. Maria das Dores Cavalheiro Leme, 281 - Parque Jambeiro, Campinas - SP, 13042-620","x":"","o":"","p":true},{"t":"Outro","e":"R. Bibiano Claro Roman, 85 - Parque Jambeiro, Campinas - SP, 13042-290","x":"","o":"","p":false}]},{"n":"LARISSA LIMA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Dr. Albano de Almeida Lima, 489 - Jardim Guanabara, Campinas - SP, 13073-131","x":"Visage Estetica","o":"","p":true}]},{"n":"RAFAEL CORREIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Ruy Rodriguez, 1344 - Jardim Yeda, Campinas - SP, 13050-700","x":"","o":"","p":true}]},{"n":"GABI ROMÃO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Manoel Dias Pimenta, 338 - Jardim Carlos Lourenço, Campinas - SP, 13101-058","x":"Residencial Caiapó III","o":"Deixar na portaria.","p":true}]},{"n":"SAMILY","f":"","c":"Campinas","a":[{"t":"Casa","e":"Fast Escova Campinas - Mansões Santo Antônio, R. Jorge de Figueiredo Corrêa, 1120 - Parque Taquaral, Campinas - SP, 13087-261","x":"","o":"","p":true}]},{"n":"JULIANA STACHIN","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Manoel Mendonça, 76 - Jardim Campos Elíseos, Campinas - SP, 13060-253","x":"","o":"","p":true}]},{"n":"GABE ABRANTES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Benevenuto de Figueiredo Torres, 514 - Parque Santa Bárbara, Campinas - SP, 13064-160","x":"","o":"","p":true}]},{"n":"THATIANA CASTILHO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Arnaldo Barreto, 330 - São Bernardo, Campinas - SP, 13030-420","x":"APTO 28","o":"","p":false},{"t":"Casa","e":"Av. Niraide Moreira Ribeiro dos Santos, 17 - Jardim Dulce (Nova Veneza), Sumaré - SP, 13178-583","x":"CASA 79","o":"Condomínio Viva Vista Brisa","p":true}]},{"n":"GABI DELAVALENTINA","f":"","c":"Sumaré","a":[{"t":"Casa","e":"R. Áureo Laurindo da Silva, 415 - Jardim dos Ipes, Sumaré - SP, 13178-863","x":"","o":"","p":true}]},{"n":"JOYCE THALITA","f":"","c":"Campinas","a":[{"t":"Outro","e":"R. Reynaldo Bolliger, 355 - Jardim Santa Monica, Campinas - SP, 13082-090","x":"","o":"CASA DA VÓ","p":false},{"t":"Casa","e":"Av. Thereza Ana Cecon Breda, 1501 - Jardim das Colinas, Hortolândia - SP, 13183-255","x":"TORRE 02 - APTO 93","o":"","p":true}]},{"n":"IRIS MARIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Izidóro Caldatto, 46 - Parque Via Norte, Campinas - SP, 13065-590","x":"","o":"","p":true}]},{"n":"THAINA MARREIRO","f":"","c":"Campinas","a":[{"t":"Outro","e":"R. Dejair Menãs, 67 - Jardim Esplanada, Campinas - SP, 13056-224","x":"","o":"","p":true}]},{"n":"AMANDA MENDES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Barão de Itapura, 1128 - Jardim Guanabara, Campinas - SP, 13020-432","x":"unimed","o":"","p":true}]},{"n":"THALITA GOMES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Gen. Osório, 638 - Centro, Campinas - SP, 13010-110","x":"","o":"","p":true}]},{"n":"INGRID HERCOLINO","f":"","c":"Valinhos","a":[{"t":"Outro","e":"R. Nícola Anselmi, 197 - Estância Recreativa San Fernando, Valinhos - SP, 13278-112","x":"","o":"","p":true}]},{"n":"NATHALIA MICOLLI","f":"19991813636","c":"Campinas","a":[{"t":"Trabalho","e":"Av. José Bonifácio, 1909 - Jardim das Paineiras, Campinas - SP, 13092-305","x":"","o":"","p":true},{"t":"Casa","e":"Av. Engenheiro Augusto Figueiredo, 357 - Vila Progresso, Campinas - SP, 13045-603","x":"TORRE 4 - APTO 141","o":"","p":false}]},{"n":"RAFAELA BUENO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Dr. Souza Ribeiro, 362 - Vila Satúrnia, Campinas - SP, 13031-095","x":"APTO 3-301","o":"","p":true}]},{"n":"THAIS","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Rua São Miguel Arcanjo, 343 - Jardim Nova Europa, Campinas - SP, 13040-061","x":"","o":"","p":true}]},{"n":"ANGELA ANDRADE","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Condomínio Residencial Jardim do Jatobá, Av. Olívio Franceschini, 850 - Parque Ortolândia, Hortolândia - SP, 13184-160","x":"NUMERO 505 / Quadra N - 1","o":"","p":true}]},{"n":"ANDRESSA LIMA","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Antônio Francisco Lisboa, 1259 - Jardim Amanda I, Hortolândia - SP, 13188-001","x":"","o":"","p":true}]},{"n":"NATHALIA GERMANO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. José Galgano, 57 - Parque Via Norte, Campinas - SP, 13065-050","x":"","o":"","p":true}]},{"n":"ANDREZZA","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Dr. Ângelo Simões, 964 - Jardim Leonor, Campinas - SP, 13041-150","x":"","o":"","p":true}]},{"n":"MARINA FURTADO","f":"19993870413","c":"Campinas","a":[{"t":"Outro","e":"R. José de Castro Mendes, 47 - Fundacao da Casa Popular, Campinas - SP, 13031-220","x":"","o":"","p":true},{"t":"Casa","e":"R. Albino Tessari, 114 - Parque dos Cisnes, Campinas - SP, 13046-255","x":"","o":"","p":false}]},{"n":"PAULA LOPES","f":"19971242553","c":"Campinas","a":[{"t":"Casa","e":"Rua Guapuruvu, 435 - Lot. Alphaville Campinas, Campinas - SP, 13098-322","x":"","o":"","p":true}]},{"n":"KATHELYN","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Quatro, 45, Hortolândia - SP, 13185-073","x":"","o":"","p":true},{"t":"Casa","e":"","x":"","o":"","p":false}]},{"n":"YANNA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Dr. Cândido Ferreira de Camargo, 57 - Cambuí, Campinas - SP, 13024-240","x":"","o":"","p":true}]},{"n":"LAURI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Camargo Pimentel, 26 - Jardim Guanabara, Campinas - SP, 13073-340","x":"","o":"","p":true}]},{"n":"BRUNA GABRIELA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Romeu Tortima, 452 - Jardim Santa Genebra II (Barao Geraldo), Campinas - SP, 13084-791","x":"EMPRESA ALS","o":"","p":true}]},{"n":"DANIELA AVANÇO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Jean Nassif Mokarzel, 107 - Cidade Universitária, Campinas - SP, 13084-070","x":"","o":"","p":true}]},{"n":"CAROLINA ANTUNES","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. da Abolição, 3012 - Swift, Campinas - SP, 13045-560","x":"","o":"","p":true},{"t":"Outro","e":"R. Antônio Viêira dos Santos Sobrinho, 25 - Vila Joaquim Inacio, Campinas - SP, 13045-655","x":"","o":"","p":false}]},{"n":"GABI LOPES","f":"","c":"Campinas","a":[{"t":"Outro","e":"R. das Taiúvas, 213 - Parque Via Norte, Campinas - SP, 13064-784","x":"","o":"","p":true}]},{"n":"STEFANIE AIELO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Jasmim, 190 - Chácara Primavera, Campinas - SP, 13087-460","x":"APTO 63B","o":"","p":true}]},{"n":"NATHALIA FERREIRA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Ruth Paiva Zupi, 158 - Lot. Res. Novo Mundo, Campinas - SP, 13058-290","x":"","o":"","p":true}]},{"n":"ALEXANDRA FREITAS","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Tabelião Aguinaldo Xavier de Souza, 121 - Parque Prado, Campinas - SP, 13040-745","x":"T 01 - 1105","o":"","p":true}]},{"n":"JOCIELE SOUZA","f":"19988811990","c":"Campinas","a":[{"t":"Casa","e":"R. Murilo de Campos Castro, 84 - Fazenda Santa Cândida, Campinas - SP, 13092-599","x":"","o":"","p":true}]},{"n":"THAINA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Mix Shopping, R. das Acácias, 888 - Vila Boa Vista, Campinas - SP, 13064-797","x":"MARMITARIA","o":"","p":true}]},{"n":"MARCELA OLIVEIRA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Bernardino de Campos, 230 - Centro, Campinas - SP, 13010-151","x":"EMBRACON","o":"","p":true}]},{"n":"RODRIGO STANGER","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Frederico Alves da Costa, 801 - Jardim Nova Hortolandia, Hortolândia - SP, 13180-270","x":"Bloco 1 - AP 201.","o":"","p":true}]},{"n":"IRENE MACIEL","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Dr. Jeber Juabre, 145 - Jardim Marcia, Campinas - SP, 13060-611","x":"Condominio Park Contemporanium","o":"APTO 102 - Bloco C","p":true}]},{"n":"JULIA AMORIM","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Iguatú, 203 - Chácara Formosa, Campinas - SP, 13054-179","x":"","o":"","p":true}]},{"n":"RAQUEL SANTOS","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Flor de Laranjeira, 49 - Vila Nogueira, Campinas - SP","x":"","o":"","p":true}]},{"n":"SONIA RIBEIRO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Sta Maria Madalena Postel, 665 - Jardim Yeda, Campinas - SP, 13060-644","x":"","o":"","p":true}]},{"n":"GABRIELA DIAS","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. José Aparecido Mendes, 550 - Res. Flamboyant, Hortolândia - SP, 13187-215","x":"","o":"","p":true}]},{"n":"LOGGI","f":"","c":"Campinas","a":[{"t":"Outro","e":"Av. Brasil, 1282 - Jardim Chapadão, Campinas - SP, 13073-148","x":"","o":"","p":true}]},{"n":"IONARA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Eng. José Francisco Bento Homem de Mello, 605 - Res. Vista Verde, Campinas - SP, 13091-700","x":"APTO 1102 - TORRE 5.","o":"","p":true}]},{"n":"NATHALIA GOULARD","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Thomas Nilsen Júnior, 425 - Loteamento Alphaville, Campinas - SP, 13097-105","x":"Condomínio Dalia","o":"Casa 58.","p":true}]},{"n":"JULIA NONATO","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. José Píres Neto, 314 - Cambuí, Campinas - SP, 13025-170","x":"","o":"","p":true}]},{"n":"JULIA MARTINS REGINATO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Santa Rita do Passa Quatro, 355 - Jardim Nova Europa, Campinas - SP, 13040-108","x":"BLOCO 5 - APTO 501.","o":"","p":true}]},{"n":"TALITA RAFAELA OLIVEIRA","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Confibra, 400 - Jardim Campos Verdes, Hortolândia - SP, 13186-070","x":"","o":"","p":true}]},{"n":"MIRIANE SANCHES","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. Maria Emília A. dos Santos de Angelis, 520 - Parque Prado, Campinas - SP, 13044-163","x":"TORRE C - APTO 23","o":"","p":true}]},{"n":"REBECCA VASCONCELOS LIMA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Aipuás, 95 - Vila Costa e Silva, Campinas - SP, 13081-080","x":"","o":"","p":true}]},{"n":"DEBORA SANCHES","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. dos Salgueiros, 491 - Vila Boa Vista, Campinas - SP, 13064-741","x":"","o":"","p":true}]},{"n":"MILENA MARIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Janaquari, 400 - Vila Aeroporto I, Campinas - SP, 13054-108","x":"","o":"","p":true}]},{"n":"ALINE MELONARI","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Tiradentes, 289 - Vila Itapura, Campinas - SP, 13023-190","x":"SALA 73/74","o":"","p":true}]},{"n":"GLENIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Alice Lourdes Lançoni, 180 - Swiss Park, Campinas - SP, 13049-449","x":"Condomínio Geneve ","o":"","p":true}]},{"n":"ANA CHELLY","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"ADRIANA LONDON","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"R. Mário Siqueira, 832 - Botafogo, Campinas - SP, 13020-210","x":"UNIMED","o":"","p":true}]},{"n":"KENIA","f":"","c":"Campinas","a":[{"t":"Trabalho","e":"Av. Dr. Jesuíno Marcondes Machado, 1472 - Jardim Planalto, Campinas - SP, 13092-001","x":"Âme Concept","o":"","p":true}]},{"n":"MARCIA DE JESUS","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Wagram, 32 - Jardim Ouro Branco, Campinas - SP, 13100-485","x":"","o":"","p":true}]},{"n":"RAISSA SILVA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Bento José de Abreu, 16 - Vila Jequitibas, Campinas - SP, 13026-308","x":"","o":"","p":true}]},{"n":"THAIS FERREIRA","f":"19997370618","c":"Sumaré","a":[{"t":"Casa","e":"R. Francisco Manoel de Souza, 272 - Chácara Bela Vista, Sumaré - SP, 13177-403","x":"Andar - A 122","o":"","p":true}]},{"n":"MONICA CARPEJANI","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"R. Manoel Bandeira, 825 - Jardim Amanda II, Hortolândia - SP, 13188-181","x":"","o":"","p":true}]},{"n":"BEATRIZ MACIELA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Álvaro Muller, 130 - Vila Itapura, Campinas - SP, 13023-180","x":"APTO 62","o":"","p":true}]},{"n":"FLAVIA SAVI","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Pedro Gianfrancisco, 60 - Parque Via Norte, Campinas - SP, 13065-195","x":"","o":"","p":true}]},{"n":"ANA PAULA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. das Acácias, 888 - Vila Boa Vista, Campinas - SP, 13064-797","x":"LOJA BELA KIDS","o":"","p":true}]},{"n":"ALINE MONTEIRO","f":"","c":"Campinas","a":[{"t":"Casa","e":"Av. João Scarparo Netto, 230 - Lot. Center Santa Genebra, Campinas - SP, 13080-655","x":"Loteamento Center Santa Genebra","o":"Principes 213","p":true}]},{"n":"GISLAINE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Henrique Oswald, 20 - Chácara Primavera, Campinas - SP, 13087-393","x":"","o":"","p":true}]},{"n":"NAYLA FERNANDA DE SOUZA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Vânia Aparecida Dias, 299 - Jardim do Lago II, Campinas - SP, 13051-029","x":"TORRE 4 - APTO 65","o":"CONDOMINIO VARANDAS","p":true}]},{"n":"GABRIELA LOPES","f":"","c":"Hortolândia","a":[{"t":"Casa","e":"Av. Pau Brasil, 335 - Jardim Conceição, Hortolândia - SP, 13185-795","x":"","o":"","p":true}]},{"n":"LARISSA GEORGETO","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Aristídes Xavier de Brito, 290 - Vila Georgina, Campinas - SP, 13043-810","x":"","o":"","p":true}]},{"n":"FLAVIA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Lotário Novaes, 244 - Taquaral, Campinas - SP, 13076-150","x":"APTO 61 - TORRE 1","o":"","p":true}]},{"n":"DEBORA PIRAJIBE","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. João da Cruz e Souza, 76 - Jardim Chapadão, Campinas - SP, 13070-116","x":"","o":"","p":true}]},{"n":"AMANDA","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Pedro Alexandrino, 207 - Vila Joao Jorge, Campinas - SP, 13041-314","x":"","o":"","p":true}]},{"n":"ANA BEATRIZ","f":"","c":"Campinas","a":[{"t":"Casa","e":"Rua Cacique Piquerobi, 149 - Vila Ipê, Campinas - SP, 13044-300","x":"CASA 02","o":"","p":true}]},{"n":"BRUNA SOARES","f":"19981210359","c":"Paulínia","a":[{"t":"Casa","e":"Av. Izabel de Freitas Pereira Caron, 386 - Jardim Ypê, Paulínia - SP, 13140-000","x":"","o":"","p":true}]},{"n":"CAMILA SERAFIM","f":"","c":"Campinas","a":[{"t":"Casa","e":"R. Presbítero Sigmundo Simberg, 55 - Parque das Constelações, Campinas - SP, 13067-790","x":"BLOCO 5 - APTO 205","o":"","p":true}]}];
 
 // ---------- ESTADO ----------
-// `orders` é sempre a lista da aba selecionada no momento — a pool "Não
-// atribuídos" (unassigned) ou o array orders da rota ativa (currentRoute).
-// Trocar de aba troca pra onde `orders` aponta; salvar (saveOrders) grava
-// de volta no lugar certo. Isso evita duplicar toda a lógica de
-// organizar/editar/arrastar/remover pra cada aba.
+// Fluxo: monta-se UMA rota normalmente (currentRoute); só quando o volume
+// fica grande demais, "Dividir rota" corta essa mesma rota em duas
+// (Rota A/Rota B, ligadas por splitWith), cada uma virando uma aba própria
+// com sua config/KPIs/organização/conclusão. Não existe pool de "não
+// atribuídos" nem "+ Nova rota" solta — a segunda rota só nasce de uma
+// divisão. Depois que as duas rotas de uma divisão são concluídas, a
+// próxima parada adicionada começa uma rota nova (igual sempre foi).
 const dateStr = dateSuffix();
-let routes = [];              // todas as rotas de hoje (em_andamento + finalizada), ordenadas por seq
-let unassigned = [];          // pedidos ainda não atribuídos a nenhuma rota (doc todayKey())
-let activeTab = 'unassigned'; // 'unassigned' ou o id de uma rota
-let currentRoute = null;      // objeto da rota ativa, ou null quando activeTab==='unassigned'
-let orders = [];              // alias pra unassigned ou currentRoute.orders, conforme a aba
+let routes = [];                 // todas as rotas de hoje, ordenadas por seq
+let mode = 'empty';              // 'empty' | 'single' | 'split'
+let splitPair = null;            // [rotaA, rotaB] ordenadas por seq, quando mode==='split'
+let activeTab = null;            // id da rota ativa dentro do splitPair (só usado em split)
+let currentRoute = null;         // rota mostrada agora (null só quando mode==='empty')
+let finishedBannerRoutes = [];   // 1 ou 2 rotas recém concluídas, pra mostrar banner com reabrir
+let orders = [];                 // alias pra currentRoute.orders
 let editingIndex = null;
-let dayConfig = null;         // currentRoute.config, ou null na aba Não atribuídos
-let travelMatrix = null;      // matriz de tempos entre todos os pontos da aba atual
+let dayConfig = null;            // currentRoute.config
+let travelMatrix = null;         // matriz de tempos entre todos os pontos da rota atual
 let matrixIndexById = {};
 
 // estado da área "Adicionar parada" (ex-Pedido Rápido)
@@ -342,10 +358,9 @@ function norm(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300
 async function loadClients(){ CLIENTS = await loadDoc('clients-db', DEFAULT_CLIENTS); }
 async function saveClients(){ await saveDoc('clients-db', CLIENTS); }
 
-// grava a rota que já existia hoje sob o modelo antigo (uma única
-// "rota em montagem" por dia, na chave orders-YYYY-MM-DD / config-YYYY-MM-DD)
-// como a próxima rota da lista, uma única vez — depois disso essa chave
-// orders-YYYY-MM-DD passa a significar só a pool "Não atribuídos".
+// promove a rota que já existia hoje sob o modelo antigo (uma única "rota
+// em montagem" por dia, na chave orders-YYYY-MM-DD / config-YYYY-MM-DD)
+// pra um registro de rota de verdade, uma única vez.
 async function migrateLegacyDraftIfNeeded(){
   const legacyOrders = await loadDoc(todayKey(), []);
   if(!legacyOrders || legacyOrders.length === 0) return null;
@@ -355,14 +370,12 @@ async function migrateLegacyDraftIfNeeded(){
   route.orders = legacyOrders;
   await saveDoc(route.id, route);
   await saveDoc(todayKey(), []);
-  routes.push(route);
   return route;
 }
 
 async function init(){
   await ensureAuth();
   await loadClients();
-  routes = await loadRoutesForDate(dateStr);
 
   const migrated = await migrateLegacyDraftIfNeeded();
   if(migrated){
@@ -371,58 +384,83 @@ async function init(){
     banner.textContent = `A rota que estava em montagem virou a Rota ${migrated.seq} automaticamente.`;
   }
 
-  unassigned = await loadDoc(todayKey(), []);
-
-  const activeRoutes = routes.filter(r => r.status === ROUTE_STATUS.ATIVA).sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
-  const initialTab = activeRoutes.length ? activeRoutes[0].id : 'unassigned';
-
   document.getElementById('routeTabs').addEventListener('click', async (e) => {
-    if(e.target.closest('#newRouteTab')){ await createNewRoute(); return; }
     const tabBtn = e.target.closest('.route-tab[data-tab]');
     if(tabBtn) await switchTab(tabBtn.dataset.tab);
   });
-
-  await switchTab(initialTab);
-}
-
-// ---------- ABAS ----------
-function renderTabs(){
-  const bar = document.getElementById('routeTabs');
-  const parts = [];
-  parts.push(`<button class="route-tab ${activeTab==='unassigned'?'active':''}" data-tab="unassigned">Não atribuídos${unassigned.length ? ' (' + unassigned.length + ')' : ''}</button>`);
-  routes.forEach(r => {
-    const doneMark = r.status === ROUTE_STATUS.FINALIZADA ? ' ✓' : '';
-    parts.push(`<button class="route-tab ${activeTab===r.id?'active':''}" data-tab="${r.id}">Rota ${r.seq}${doneMark}</button>`);
+  document.getElementById('finishedBanner').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.reopen-finished-btn');
+    if(!btn) return;
+    const route = routes.find(r => r.id === btn.dataset.routeId);
+    if(!route) return;
+    await reopenRoute(route);
+    showToast(`Rota ${route.seq} reaberta`);
+    await refreshRouteState(route.id);
+    renderAll();
   });
-  parts.push(`<button class="route-tab route-tab-new" id="newRouteTab" type="button">+ Nova rota</button>`);
-  bar.innerHTML = parts.join('');
+
+  await refreshRouteState();
+  renderAll();
 }
 
-async function createNewRoute(){
+// ---------- ESTADO DA ROTA (única, ou dividida em duas) ----------
+// Decide o que mostrar a partir das rotas de hoje: se a última rota tem
+// uma dupla de divisão ainda não totalmente concluída, mostra as 2 abas;
+// se a última rota está ativa (não dividida), mostra ela direto, sem
+// abas; senão (dia vazio, ou última rota/dupla já concluída), fica vazia
+// — pronta pra uma rota nova nascer só quando o usuário adicionar a
+// primeira parada (ensureWorkingRoute).
+async function refreshRouteState(preferRouteId){
+  routes = await loadRoutesForDate(dateStr);
+  const last = routes.length ? routes[routes.length - 1] : null;
+  finishedBannerRoutes = [];
+
+  if(last && last.splitWith){
+    const partner = routes.find(r => r.id === last.splitWith);
+    const pair = [last, partner].sort((a,b) => a.seq - b.seq);
+    if(!pair.every(r => r.status === ROUTE_STATUS.FINALIZADA)){
+      splitPair = pair;
+      mode = 'split';
+      activeTab = (preferRouteId && pair.some(r => r.id === preferRouteId)) ? preferRouteId : pair[0].id;
+      currentRoute = pair.find(r => r.id === activeTab);
+      orders = currentRoute.orders; dayConfig = currentRoute.config;
+      await refreshTravelMatrix();
+      return;
+    }
+    finishedBannerRoutes = pair;
+  } else if(last && last.status === ROUTE_STATUS.ATIVA){
+    mode = 'single'; splitPair = null; activeTab = null;
+    currentRoute = last;
+    orders = currentRoute.orders; dayConfig = currentRoute.config;
+    await refreshTravelMatrix();
+    return;
+  } else if(last){
+    finishedBannerRoutes = [last];
+  }
+
+  mode = 'empty'; splitPair = null; activeTab = null; currentRoute = null;
+  orders = []; dayConfig = null; travelMatrix = null; matrixIndexById = {};
+}
+
+// cria (ou reaproveita) a rota de trabalho atual — só chamada quando o
+// usuário efetivamente adiciona a primeira parada de uma rota nova, pra
+// não criar documentos de rota vazios sem necessidade.
+async function ensureWorkingRoute(){
+  if(currentRoute) return currentRoute;
   const last = routes.length ? routes[routes.length - 1] : null;
   const config = { saida: '', tempoPadrao: last ? last.config.tempoPadrao : 3, tempoProva: last ? last.config.tempoProva : 20 };
-  const route = await createRoute(dateStr, config);
-  routes.push(route);
-  await switchTab(route.id);
-  showToast(`Rota ${route.seq} criada`);
+  const fresh = await createRoute(dateStr, config);
+  routes.push(fresh);
+  mode = 'single'; splitPair = null; activeTab = null;
+  currentRoute = fresh;
+  orders = fresh.orders; dayConfig = fresh.config;
+  return fresh;
 }
 
-async function switchTab(tabId){
-  activeTab = tabId;
-  editingIndex = null;
-  if(tabId === 'unassigned'){
-    currentRoute = null;
-    orders = unassigned;
-    dayConfig = null;
-  } else {
-    currentRoute = routes.find(r => r.id === tabId);
-    orders = currentRoute.orders;
-    dayConfig = currentRoute.config;
-  }
-  await refreshTravelMatrix();
+function renderAll(){
   renderTabs();
-  renderRouteOnlyVisibility();
-  renderRouteActionButtons();
+  renderFinishedBanner();
+  renderActionButtons();
   renderConfigInputs();
   renderIntervalWarning();
   renderOrders();
@@ -430,25 +468,75 @@ async function switchTab(tabId){
   renderMap();
 }
 
-function renderRouteOnlyVisibility(){
-  const isRoute = activeTab !== 'unassigned';
-  document.querySelectorAll('.route-only').forEach(el => { el.style.display = isRoute ? '' : 'none'; });
-  if(!isRoute) document.getElementById('intervalWarning').style.display = 'none';
-  document.getElementById('emptyOrders').textContent = isRoute
-    ? 'Nenhuma parada nesta rota ainda. Adicione acima ou mova de "Não atribuídos".'
-    : 'Nenhuma parada não atribuída. Use "Adicionar parada" acima.';
+// ---------- ABAS (só existem depois de uma divisão) ----------
+async function switchTab(routeId){
+  if(mode !== 'split') return;
+  activeTab = routeId;
+  currentRoute = splitPair.find(r => r.id === routeId);
+  orders = currentRoute.orders;
+  dayConfig = currentRoute.config;
+  editingIndex = null;
+  await refreshTravelMatrix();
+  renderAll();
 }
 
-function renderRouteActionButtons(){
-  const isRoute = activeTab !== 'unassigned';
-  const isFinalized = isRoute && currentRoute.status === ROUTE_STATUS.FINALIZADA;
-  organizeBtn.style.display = (isRoute && !isFinalized) ? '' : 'none';
-  finalizeBtn.style.display = (isRoute && !isFinalized) ? '' : 'none';
-  document.getElementById('reopenRouteBtn').style.display = isFinalized ? '' : 'none';
+function renderTabs(){
+  const bar = document.getElementById('routeTabs');
+  if(mode !== 'split'){ bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = splitPair.map(r => {
+    const doneMark = r.status === ROUTE_STATUS.FINALIZADA ? ' ✓' : '';
+    return `<button class="route-tab ${activeTab===r.id?'active':''}" data-tab="${r.id}">Rota ${r.seq}${doneMark}</button>`;
+  }).join('');
+}
+
+function renderFinishedBanner(){
+  const el = document.getElementById('finishedBanner');
+  if(finishedBannerRoutes.length === 0){ el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const label = finishedBannerRoutes.length === 2
+    ? `Rota ${finishedBannerRoutes[0].seq} e Rota ${finishedBannerRoutes[1].seq} concluídas.`
+    : `Rota ${finishedBannerRoutes[0].seq} concluída.`;
+  el.innerHTML = label + ' ' + finishedBannerRoutes.map(r =>
+    `<button class="btn btn-outline reopen-finished-btn" data-route-id="${r.id}" style="margin-left:8px;padding:6px 12px;font-size:12px;">Reabrir Rota ${r.seq}</button>`
+  ).join('');
+}
+
+function renderActionButtons(){
+  const resplitBtn = document.getElementById('resplitBtn');
+  const undoSplitBtn = document.getElementById('undoSplitBtn');
+  const splitBtn = document.getElementById('splitBtn');
+  const reopenBtn = document.getElementById('reopenRouteBtn');
+  if(!currentRoute){
+    organizeBtn.style.display = ''; organizeBtn.disabled = true;
+    finalizeBtn.style.display = ''; finalizeBtn.disabled = true;
+    splitBtn.style.display = ''; splitBtn.disabled = true;
+    resplitBtn.style.display = 'none'; undoSplitBtn.style.display = 'none'; reopenBtn.style.display = 'none';
+    return;
+  }
+  const isFinalized = currentRoute.status === ROUTE_STATUS.FINALIZADA;
+  organizeBtn.style.display = isFinalized ? 'none' : '';
+  finalizeBtn.style.display = isFinalized ? 'none' : '';
+  reopenBtn.style.display = isFinalized ? '' : 'none';
+  if(mode === 'split'){
+    splitBtn.style.display = 'none';
+    resplitBtn.style.display = '';
+    undoSplitBtn.style.display = '';
+  } else {
+    splitBtn.style.display = '';
+    splitBtn.disabled = isFinalized || orders.slice(1,-1).length < 2;
+    resplitBtn.style.display = 'none';
+    undoSplitBtn.style.display = 'none';
+  }
 }
 
 function renderConfigInputs(){
-  if(activeTab === 'unassigned') return;
+  if(!currentRoute){
+    document.getElementById('saidaInput').value = '';
+    document.getElementById('tempoPadraoInput').value = '';
+    document.getElementById('tempoProvaInput').value = '';
+    return;
+  }
   document.getElementById('saidaInput').value = dayConfig.saida || '';
   document.getElementById('tempoPadraoInput').value = dayConfig.tempoPadrao;
   document.getElementById('tempoProvaInput').value = dayConfig.tempoProva;
@@ -473,10 +561,11 @@ document.getElementById('tempoProvaInput').addEventListener('change', saveRouteC
 
 // aviso (não bloqueia) de intervalo entre a rota anterior e a atual —
 // só calcula quando a rota anterior já tem legs salvos (ou seja, já foi
-// concluída pelo menos uma vez), senão não tem como prever o retorno dela.
+// concluída pelo menos uma vez). Funciona igual pra rotas sequenciais
+// comuns e pras duas metades de uma divisão (sempre seq adjacentes).
 function renderIntervalWarning(){
   const el = document.getElementById('intervalWarning');
-  if(activeTab === 'unassigned' || !currentRoute || !dayConfig || !dayConfig.saida){ el.style.display = 'none'; return; }
+  if(!currentRoute || !dayConfig || !dayConfig.saida){ el.style.display = 'none'; return; }
   const idx = routes.findIndex(r => r.id === currentRoute.id);
   const prev = idx > 0 ? routes[idx - 1] : null;
   if(!prev){ el.style.display = 'none'; return; }
@@ -495,61 +584,32 @@ function renderIntervalWarning(){
   }
 }
 
-// adiciona uma parada nova (cliente ou avulsa) — sempre na pool "Não
-// atribuídos", não importa qual aba está selecionada no momento.
+// adiciona uma parada nova (cliente ou avulsa) na rota de trabalho atual —
+// cria essa rota na hora se ainda não existir nenhuma em montagem hoje.
 async function addOrderToRoute(order){
-  unassigned.push(order);
-  await saveDoc(todayKey(), unassigned);
-  renderTabs();
-  if(activeTab === 'unassigned'){
-    orders = unassigned;
-    await refreshTravelMatrix();
-    renderOrders();
-    renderKpis();
-    renderMap();
-  }
+  await ensureWorkingRoute();
+  orders.push(order);
+  await refreshTravelMatrix();
+  renderAll();
+  await saveOrders();
 }
 
-// salva `orders` de volta no lugar certo, conforme a aba selecionada.
+// salva `orders` de volta na rota atual.
 async function saveOrders(){
-  if(activeTab === 'unassigned'){
-    unassigned = orders;
-    await saveDoc(todayKey(), unassigned);
-  } else {
-    currentRoute.orders = orders;
-    await saveDoc(currentRoute.id, currentRoute);
-  }
+  currentRoute.orders = orders;
+  await saveDoc(currentRoute.id, currentRoute);
   renderTabs();
   renderKpis();
   renderMap();
-}
-
-async function moveOrderToTab(idx, targetTabId){
-  if(!targetTabId) return;
-  const order = orders[idx];
-  orders.splice(idx, 1);
-  await saveOrders();
-  if(targetTabId === 'unassigned'){
-    unassigned.push(order);
-    await saveDoc(todayKey(), unassigned);
-  } else {
-    const target = routes.find(r => r.id === targetTabId);
-    target.orders.push(order);
-    await saveDoc(target.id, target);
-  }
-  await refreshTravelMatrix();
-  renderOrders();
-  renderTabs();
-  showToast('Pedido movido de rota');
 }
 
 const ordersListEl = document.getElementById('ordersList');
 const organizeBtn = document.getElementById('organizeBtn');
 const finalizeBtn = document.getElementById('finalizeBtn');
 
-// matriz de tempos entre todos os pontos da aba atual — buscada uma vez
-// (na troca de aba e depois de organizar) e reaproveitada localmente pra
-// recalcular a chegada estimada a qualquer momento (arrastar, editar,
+// matriz de tempos entre todos os pontos da rota atual — buscada uma vez
+// (na troca de rota/aba e depois de organizar) e reaproveitada localmente
+// pra recalcular a chegada estimada a qualquer momento (arrastar, editar,
 // remover), sem precisar chamar a API de novo.
 async function refreshTravelMatrix(){
   travelMatrix = null; matrixIndexById = {};
@@ -601,7 +661,14 @@ function computeRouteTotals(){
 }
 
 function renderKpis(){
-  if(activeTab === 'unassigned') return;
+  if(!currentRoute){
+    document.getElementById('kpiParadas').textContent = '0';
+    document.getElementById('kpiSaida').textContent = '—';
+    document.getElementById('kpiRetorno').textContent = '—';
+    document.getElementById('kpiKm').textContent = '—';
+    document.getElementById('kpiTempo').textContent = '';
+    return;
+  }
   const intermediates = orders.length > 2 ? orders.slice(1, -1) : [];
   document.getElementById('kpiParadas').textContent = intermediates.length;
   document.getElementById('kpiSaida').textContent = (dayConfig && dayConfig.saida) || '—';
@@ -623,7 +690,7 @@ function renderKpis(){
 function renderMap(){
   const frame = document.getElementById('routeMap');
   const note = document.getElementById('mapNote');
-  if(activeTab === 'unassigned' || orders.length < 2 || !hasGoogleMapsKey()){
+  if(!currentRoute || orders.length < 2 || !hasGoogleMapsKey()){
     frame.style.display = 'none'; note.style.display = 'block';
     return;
   }
@@ -671,29 +738,26 @@ function ensureOrderIds(){
   return changed;
 }
 
-function renderMoveOptions(){
-  const opts = [];
-  if(activeTab !== 'unassigned') opts.push(`<option value="unassigned">Não atribuídos</option>`);
-  routes.forEach(r => { if(r.id !== activeTab) opts.push(`<option value="${r.id}">Rota ${r.seq}${r.status===ROUTE_STATUS.FINALIZADA?' (concluída)':''}</option>`); });
-  return opts.join('');
-}
-
 function renderOrders(){
+  if(!currentRoute){
+    document.getElementById('emptyOrders').style.display = 'block';
+    ordersListEl.style.display = 'none';
+    ordersListEl.innerHTML = '';
+    return;
+  }
   if(ensureOrderIds()) saveOrders();
-  const isRoute = activeTab !== 'unassigned';
   document.getElementById('emptyOrders').style.display = orders.length === 0 ? 'block' : 'none';
   ordersListEl.style.display = orders.length === 0 ? 'none' : 'block';
-  organizeBtn.disabled = !isRoute || orders.length < 3;
-  finalizeBtn.disabled = !isRoute || orders.length === 0;
+  organizeBtn.disabled = orders.length < 3;
+  finalizeBtn.disabled = orders.length === 0;
 
-  const etas = isRoute ? computeEtas() : null;
-  const moveOptions = renderMoveOptions();
+  const etas = computeEtas();
 
   ordersListEl.innerHTML = orders.map((o, i) => {
     if(i === editingIndex) return renderEditTicket(o, i);
     const cls = o.kind === 'avulsa' ? 'ticket avulsa' : 'ticket';
     const meta = o.kind === 'avulsa' ? '' : (o.modes||[]).map(m => `<span class="pill">${escapeHtml(m)}</span>`).join('');
-    const isEdge = isRoute && (i === 0 || i === orders.length - 1);
+    const isEdge = (i === 0 || i === orders.length - 1);
     const etaHtml = (etas && !isEdge) ? `<div class="eta-badge">Chegada prevista: ${fmtTime(etas[i])}</div>` : '';
     return `<div class="${cls}" data-order-id="${o._id}">
       <span class="drag-handle">⠿</span>
@@ -708,10 +772,6 @@ function renderOrders(){
         <button class="mini-btn" onclick="moveOrder(${i},-1)" title="Subir">↑</button>
         <button class="mini-btn" onclick="moveOrder(${i},1)" title="Descer">↓</button>
         <button class="mini-btn" onclick="removeOrder(${i})" title="Remover">✕</button>
-        <select class="move-select" onchange="moveOrderToTab(${i}, this.value); this.value='';">
-          <option value="">Mover para...</option>
-          ${moveOptions}
-        </select>
       </div></div>`;
   }).join('');
 
@@ -898,7 +958,7 @@ function solveTimeAwareOrder(intermediates, matrix, cfg, saidaMin){
 }
 
 async function organizeRoute(){
-  if(activeTab === 'unassigned'){ showToast('Selecione uma rota para organizar'); return; }
+  if(!currentRoute){ showToast('Adicione paradas antes de organizar'); return; }
   if(!hasGoogleMapsKey()){ showToast('Configure a variável de ambiente GOOGLE_MAPS_API_KEY no servidor'); return; }
   if(orders.length < 3){ showToast('Adicione pelo menos 3 paradas para organizar a rota'); return; }
 
@@ -1012,6 +1072,101 @@ function onDragEnd(){
   saveOrders();
 }
 
+// ---------- DIVIDIR ROTA ----------
+// A segunda rota só nasce de uma divisão explícita da rota principal: o
+// usuário escolhe depois de qual parada cortar (numeração 1..N entre as
+// paradas reais, sem contar loja de saída/retorno), e cada metade fica
+// com sua própria cópia da loja como origem/destino — sai e volta pra
+// loja separadamente. "Mudar o ponto de corte" reaproveita o mesmo painel,
+// olhando a sequência combinada das duas metades atuais.
+function cloneStop(o){ return Object.assign({}, o, { _id: 'o' + Date.now() + Math.random().toString(36).slice(2,8) }); }
+
+const splitPanel = document.getElementById('splitPanel');
+const splitPointSelect = document.getElementById('splitPointSelect');
+
+function openSplitPanel(kind){
+  const intermediates = kind === 'initial'
+    ? orders.slice(1, -1)
+    : [...splitPair[0].orders.slice(1,-1), ...splitPair[1].orders.slice(1,-1)];
+  if(intermediates.length < 2){ showToast('É preciso ter pelo menos 2 paradas pra dividir a rota'); return; }
+  document.getElementById('splitPanelTitle').textContent = kind === 'initial' ? 'Dividir rota' : 'Mudar ponto de corte';
+  splitPointSelect.innerHTML = intermediates.slice(0, -1).map((o, i) =>
+    `<option value="${i+1}">Depois de "${escapeHtml(o.name)}" (parada ${i+1} de ${intermediates.length})</option>`
+  ).join('');
+  const defaultK = kind === 'initial' ? Math.ceil(intermediates.length/2) : (splitPair[0].orders.length - 2);
+  splitPointSelect.value = String(Math.min(Math.max(defaultK,1), intermediates.length-1));
+  splitPanel.dataset.kind = kind;
+  splitPanel.style.display = 'block';
+}
+document.getElementById('splitBtn').addEventListener('click', () => openSplitPanel('initial'));
+document.getElementById('resplitBtn').addEventListener('click', () => openSplitPanel('resplit'));
+document.getElementById('splitCancelBtn').addEventListener('click', () => { splitPanel.style.display = 'none'; });
+
+async function performInitialSplit(k){
+  const origin = orders[0], destination = orders[orders.length-1];
+  const intermediates = orders.slice(1, -1);
+  const group1 = intermediates.slice(0, k);
+  const group2 = intermediates.slice(k);
+
+  currentRoute.orders = [origin, ...group1, cloneStop(destination)];
+  await saveDoc(currentRoute.id, currentRoute);
+
+  const config2 = { saida: '', tempoPadrao: currentRoute.config.tempoPadrao, tempoProva: currentRoute.config.tempoProva };
+  const route2 = await createRoute(dateStr, config2);
+  route2.orders = [cloneStop(origin), ...group2, destination];
+  route2.splitWith = currentRoute.id;
+  currentRoute.splitWith = route2.id;
+  await saveDoc(route2.id, route2);
+  await saveDoc(currentRoute.id, currentRoute);
+
+  showToast(`Rota dividida em Rota ${currentRoute.seq} e Rota ${route2.seq}`);
+  const preferId = currentRoute.id;
+  await refreshRouteState(preferId);
+  renderAll();
+}
+
+async function performResplit(k){
+  const [r1, r2] = splitPair;
+  const origin = r1.orders[0], destination = r2.orders[r2.orders.length-1];
+  const combined = [...r1.orders.slice(1,-1), ...r2.orders.slice(1,-1)];
+  const group1 = combined.slice(0, k);
+  const group2 = combined.slice(k);
+
+  r1.orders = [origin, ...group1, cloneStop(destination)];
+  r2.orders = [cloneStop(origin), ...group2, destination];
+  await saveDoc(r1.id, r1);
+  await saveDoc(r2.id, r2);
+
+  showToast('Ponto de divisão atualizado');
+  await refreshRouteState(activeTab);
+  renderAll();
+}
+
+document.getElementById('splitConfirmBtn').addEventListener('click', async () => {
+  const k = parseInt(splitPointSelect.value, 10);
+  const kind = splitPanel.dataset.kind;
+  splitPanel.style.display = 'none';
+  if(kind === 'initial') await performInitialSplit(k);
+  else await performResplit(k);
+});
+
+document.getElementById('undoSplitBtn').addEventListener('click', async () => {
+  const [r1, r2] = splitPair;
+  const origin = r1.orders[0], destination = r2.orders[r2.orders.length-1];
+  const combined = [...r1.orders.slice(1,-1), ...r2.orders.slice(1,-1)];
+  r1.orders = [origin, ...combined, destination];
+  r1.splitWith = null;
+  await saveDoc(r1.id, r1);
+
+  const index = await loadRouteIndex(dateStr);
+  index.ids = index.ids.filter(id => id !== r2.id);
+  await saveDoc(routeIndexKey(dateStr), index);
+
+  showToast('Divisão desfeita');
+  await refreshRouteState(r1.id);
+  renderAll();
+});
+
 // ---------- CONCLUIR / REABRIR ROTA ----------
 // Marca a rota selecionada como concluída, salva os dados finais (km,
 // paradas, tipos de atendimento, status de cada entrega) e registra
@@ -1027,11 +1182,8 @@ finalizeBtn.addEventListener('click', async () => {
     currentRoute.orders = orders;
     const route = await finalizeRoute(currentRoute, legs);
     showToast(legs ? `Rota ${route.seq} concluída!` : `Rota ${route.seq} concluída (sem km — configure a chave do Maps pra calcular)`);
-    renderTabs();
-    renderRouteActionButtons();
-    renderOrders();
-    renderKpis();
-    renderMap();
+    await refreshRouteState(route.id);
+    renderAll();
   } catch(e){
     showToast('Não foi possível concluir a rota: ' + e.message);
   } finally {
@@ -1041,11 +1193,11 @@ finalizeBtn.addEventListener('click', async () => {
 
 document.getElementById('reopenRouteBtn').addEventListener('click', async () => {
   if(!currentRoute) return;
+  const id = currentRoute.id;
   await reopenRoute(currentRoute);
   showToast('Rota reaberta para edição');
-  renderTabs();
-  renderRouteActionButtons();
-  renderOrders();
+  await refreshRouteState(id);
+  renderAll();
 });
 
 // ---------- ADICIONAR PARADA (ex-Pedido Rápido) ----------
@@ -1180,7 +1332,7 @@ addBtn.addEventListener('click', async () => {
     address: addr.e, complement: addr.x, ref: addr.o,
     modes: modesFinal, obs: obsInput.value.trim(), timeWindow: selectedTW, status: 'pendente'
   });
-  showToast('Adicionado a Não atribuídos');
+  showToast('Adicionado à rota');
   selected = null; selectedModes = new Set();
   selectedTW = { type:'none', time:null };
   resetTimeWindowPicker('twPills', 'twTimeBox', 'twTimeInput');
