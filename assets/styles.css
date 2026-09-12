@@ -1,7 +1,8 @@
 /* Design system compartilhado por todas as páginas do painel.
-   Minimal SaaS Dashboard / Clean Backoffice — referência Shopify Admin +
-   Linear. Mesmas classes de antes preservadas — nenhuma página precisa
-   ser tocada por causa deste arquivo. */
+   Réplica fiel da referência visual da Fashion Corner: sidebar marrom
+   escura, topo e cards claros, Poppins em toda a interface. Mesmas
+   classes de antes preservadas — nenhuma página precisa ser tocada por
+   causa deste arquivo. */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root{
@@ -9,12 +10,15 @@
   --wine:#8A6A52; --wine-dark:#745640; --gold:#C08A3E;
   --sage:#4F8A63; --line:#E7E1DB; --muted:#6F6863;
   --danger:#C45A5A; --info:#5D7FA3;
-  --sidebar-w:252px; --topbar-h:78px;
+  --sidebar-w:236px; --topbar-h:82px;
   --brown-light:#EDE2D8; --card-bg:#FFFFFF;
   --sage-tint:#E7F1EA; --gold-tint:#FBF0DE; --danger-tint:#F9EAEA; --info-tint:#E9EFF6;
+  --sidebar-bg:#3E2C20; --sidebar-text:#F1E7DA; --sidebar-muted:#C4AF98;
+  --sidebar-active-bg:#F5EEE8; --sidebar-active-text:#3E2C20; --sidebar-hover:rgba(255,255,255,.06);
+  --sidebar-border:rgba(255,255,255,.10);
   --shadow-xs:0 1px 2px rgba(43,38,35,.05);
-  --shadow-sm:0 1px 3px rgba(43,38,35,.07);
-  --shadow-card:0 1px 2px rgba(43,38,35,.04), 0 6px 16px -10px rgba(43,38,35,.10);
+  --shadow-sm:0 1px 3px rgba(43,38,35,.06);
+  --shadow-card:0 1px 2px rgba(43,38,35,.04), 0 8px 20px -14px rgba(43,38,35,.14);
   --radius:12px; --radius-sm:9px; --radius-lg:16px;
 }
 *{box-sizing:border-box;}
@@ -28,118 +32,113 @@ img{max-width:100%;}
 /* ---------- Shell: sidebar + topbar ---------- */
 .app-shell{display:flex;min-height:100vh;}
 .sidebar{
-  width:var(--sidebar-w);flex-shrink:0;color:var(--ink);
-  background:var(--card-bg);
-  border-right:1px solid var(--line);
-  display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh;overflow-y:auto;
+  width:var(--sidebar-w);flex-shrink:0;color:var(--sidebar-text);
+  background:var(--sidebar-bg);
+  display:flex;flex-direction:column;padding:24px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;
 }
-.brand-row{display:flex;align-items:center;gap:10px;padding:4px 8px 24px;}
-.brand-mark{
-  width:32px;height:32px;border-radius:9px;flex-shrink:0;background:var(--wine);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-family:'Poppins',sans-serif;font-weight:700;font-size:13px;
-}
+.brand-row{padding:4px 10px 26px;}
 .sidebar-logo{
-  font-family:'Poppins',sans-serif;font-weight:700;font-size:14.5px;letter-spacing:.01em;line-height:1.2;
-  color:var(--ink);
+  font-family:'Poppins',sans-serif;font-weight:700;font-size:16px;letter-spacing:.02em;line-height:1.25;
+  color:var(--sidebar-text);
 }
-.sidebar-logo span{color:var(--wine);display:block;font-weight:700;}
+.sidebar-logo span{color:var(--gold);display:block;font-weight:700;}
 .sidebar-nav{display:flex;flex-direction:column;gap:2px;}
 .sidebar-section{
-  font-family:'Poppins',sans-serif;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;
-  color:var(--muted);padding:18px 12px 6px;
+  font-family:'Poppins',sans-serif;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--sidebar-muted);padding:18px 12px 7px;opacity:.85;
 }
 .sidebar-section:first-child{padding-top:2px;}
 .sidebar-nav a{
   display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:500;
-  color:var(--muted);text-decoration:none;transition:background .12s,color .12s;
+  color:var(--sidebar-muted);text-decoration:none;transition:background .12s,color .12s;
   position:relative;
 }
-.sidebar-nav a:hover{background:var(--paper);color:var(--ink);}
+.sidebar-nav a:hover{background:var(--sidebar-hover);color:var(--sidebar-text);}
 .sidebar-nav a.active{
-  color:var(--wine-dark);background:var(--brown-light);font-weight:600;
+  color:var(--sidebar-active-text);background:var(--sidebar-active-bg);font-weight:600;
 }
 .sidebar-nav a .icon{width:17px;text-align:center;flex-shrink:0;font-size:14px;line-height:1;}
 .sidebar-nav a .label{flex:1;min-width:0;}
-.sidebar-nav a.disabled{opacity:.5;pointer-events:none;}
+.sidebar-nav a.disabled{opacity:.45;pointer-events:none;}
 .soon-tag{
   font-family:'Poppins',sans-serif;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;
-  color:var(--muted);background:var(--paper-2);border-radius:999px;padding:2px 7px;flex-shrink:0;
+  color:var(--sidebar-muted);background:rgba(255,255,255,.08);border-radius:999px;padding:2px 7px;flex-shrink:0;
 }
 
-.sidebar-account{margin-top:auto;padding:16px 8px 4px;border-top:1px solid var(--line);}
-.account-row{display:flex;align-items:center;gap:9px;margin-bottom:10px;min-width:0;}
+.sidebar-account{margin-top:auto;padding-top:16px;border-top:1px solid var(--sidebar-border);}
+.account-row{display:flex;align-items:center;gap:9px;min-width:0;padding:6px 8px;border-radius:var(--radius-sm);}
 .account-avatar{
-  width:28px;height:28px;border-radius:50%;flex-shrink:0;background:var(--brown-light);color:var(--wine-dark);
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;background:var(--sidebar-active-bg);color:var(--sidebar-active-text);
   display:flex;align-items:center;justify-content:center;font-family:'Poppins',sans-serif;font-weight:600;font-size:12px;
 }
-.account-info{min-width:0;}
-.sidebar-account-email{font-size:11.5px;font-weight:500;color:var(--ink);word-break:break-all;line-height:1.35;}
+.account-info{min-width:0;flex:1;}
+.sidebar-account-email{font-size:11.5px;font-weight:500;color:var(--sidebar-text);word-break:break-all;line-height:1.3;}
 .sidebar-logout{
-  width:100%;background:transparent;
-  border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 10px;
-  font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;
+  flex-shrink:0;background:transparent;
+  border:1px solid var(--sidebar-border);border-radius:8px;width:28px;height:28px;padding:0;
+  font-size:13px;color:var(--sidebar-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
   transition:background .12s,border-color .12s,color .12s;
 }
-.sidebar-logout:hover{background:var(--brown-light);border-color:var(--wine);color:var(--wine-dark);}
+.sidebar-logout:hover{background:var(--sidebar-hover);border-color:var(--sidebar-muted);color:var(--sidebar-text);}
 
 .topbar{
   min-height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
-  padding:16px 28px;background:var(--card-bg);
+  padding:18px 32px;background:var(--card-bg);
   border-bottom:1px solid var(--line);
   position:relative;z-index:2;
 }
-.topbar h1{font-family:'Poppins',sans-serif;font-size:21px;font-weight:700;margin:0;letter-spacing:-.01em;}
-.topbar .subtitle{font-size:12.5px;color:var(--muted);margin-top:3px;font-weight:400;}
+.topbar h1{font-family:'Poppins',sans-serif;font-size:25px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.topbar .subtitle{font-size:13px;color:var(--muted);margin-top:4px;font-weight:400;}
 .topbar .topbar-right{display:flex;align-items:center;gap:12px;}
 .date-pill{
-  display:inline-flex;align-items:center;gap:7px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:500;
-  color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:7px 14px;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:7px;font-family:'Poppins',sans-serif;font-size:12.5px;font-weight:500;
+  color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:8px 16px;white-space:nowrap;
 }
 .date-pill .icon{font-size:13px;line-height:1;}
 .avatar{
-  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
   background:var(--wine);
-  color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;
   font-family:'Poppins',sans-serif;
 }
 
 .main{flex:1;min-width:0;display:flex;flex-direction:column;}
-.page{padding:26px 28px 60px;max-width:1360px;width:100%;}
+.page{padding:28px 32px 60px;max-width:1400px;width:100%;}
 
 /* ---------- Primitivos reutilizáveis ---------- */
 .card{
   background:var(--card-bg);
-  border:1px solid var(--line);border-radius:var(--radius-lg);padding:22px;margin-bottom:18px;
+  border:1px solid var(--line);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;
   box-shadow:var(--shadow-card);
 }
 .card-title{font-family:'Poppins',sans-serif;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 14px;display:flex;align-items:center;gap:8px;}
-.card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;}
+.card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:18px;}
 .card-icon-chip{
-  width:34px;height:34px;border-radius:10px;flex-shrink:0;background:var(--brown-light);color:var(--wine-dark);
-  display:flex;align-items:center;justify-content:center;font-size:15px;
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;background:var(--brown-light);color:var(--wine-dark);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
 }
-.card-header .card-title{font-size:14px;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:600;margin-bottom:2px;}
-.card-subtitle{font-size:12px;color:var(--muted);font-weight:400;}
+.card-header .card-title{font-size:15px;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:600;margin:0 0 2px;}
+.card-subtitle{font-size:12.5px;color:var(--muted);font-weight:400;}
 
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px;}
 @media (max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
 .kpi-card{
   position:relative;background:var(--card-bg);
-  border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;
+  border:1px solid var(--line);border-radius:var(--radius-lg);padding:20px 22px;
   box-shadow:var(--shadow-sm);
 }
-.kpi-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.kpi-card-top{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
 .kpi-icon-chip{
-  width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;
   background:var(--brown-light);color:var(--wine-dark);
 }
 .kpi-icon-chip--sage{background:var(--sage-tint);color:var(--sage);}
 .kpi-icon-chip--gold{background:var(--gold-tint);color:var(--gold);}
 .kpi-icon-chip--info{background:var(--info-tint);color:var(--info);}
-.kpi-card .kpi-icon{font-size:15px;color:var(--wine);margin-bottom:8px;}
-.kpi-card .kpi-value{font-family:'Poppins',sans-serif;font-size:26px;font-weight:700;line-height:1.1;}
-.kpi-card .kpi-label{font-size:12px;color:var(--muted);margin-top:5px;font-weight:500;}
-.kpi-card .kpi-delta{font-size:11px;color:var(--sage);margin-top:6px;font-weight:600;}
+.kpi-card-label-row{flex:1;min-width:0;font-size:13px;font-weight:500;color:var(--ink);}
+.kpi-card .kpi-value{font-family:'Poppins',sans-serif;font-size:28px;font-weight:700;line-height:1.1;}
+.kpi-card .kpi-label{font-size:12.5px;color:var(--muted);margin-top:6px;font-weight:500;}
+.kpi-card .kpi-delta{font-size:11.5px;color:var(--sage);margin-top:7px;font-weight:600;display:flex;align-items:center;gap:4px;}
 .kpi-card .kpi-delta.down{color:var(--danger);}
 .kpi-card .kpi-delta:empty{display:none;}
 
@@ -231,11 +230,11 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13.5px;}
 
 /* ---------- Responsivo ---------- */
 @media (max-width:1100px){
-  .page{padding:22px 22px 50px;}
+  .page{padding:24px 22px 50px;}
 }
 @media (max-width:860px){
   .app-shell{flex-direction:column;}
-  .sidebar{position:relative;height:auto;width:100%;flex-direction:row;align-items:center;overflow-x:auto;padding:12px 14px;border-right:none;border-bottom:1px solid var(--line);}
+  .sidebar{position:relative;height:auto;width:100%;flex-direction:row;align-items:center;overflow-x:auto;padding:12px 14px;}
   .brand-row{padding:0 14px 0 0;}
   .sidebar-nav{flex-direction:row;}
   .sidebar-nav a .label{display:none;}

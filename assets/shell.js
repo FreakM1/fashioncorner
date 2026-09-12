@@ -56,7 +56,6 @@ function renderShell({ active, title, subtitle }){
   const sidebar = document.getElementById('sidebar');
   sidebar.innerHTML = `
     <div class="brand-row">
-      <div class="brand-mark">FC</div>
       <div class="sidebar-logo">FASHION<span>CORNER</span></div>
     </div>
     <nav class="sidebar-nav">
@@ -71,8 +70,8 @@ function renderShell({ active, title, subtitle }){
         <div class="account-info">
           <div class="sidebar-account-email" id="sidebarAccountEmail">&nbsp;</div>
         </div>
+        <button class="sidebar-logout" id="sidebarLogoutBtn" title="Sair da conta" aria-label="Sair da conta">&#9211;</button>
       </div>
-      <button class="sidebar-logout" id="sidebarLogoutBtn">Sair da conta</button>
     </div>`;
 
   const topbar = document.getElementById('topbar');
