@@ -44,6 +44,23 @@
   .route-tab{font-family:'Poppins',sans-serif;font-weight:500;font-size:12.5px;padding:9px 16px;border-radius:20px;border:1px solid var(--line);background:var(--card-bg);color:var(--ink);cursor:pointer;white-space:nowrap;}
   .route-tab.active{border-color:var(--wine);background:var(--wine);color:#fff;font-weight:600;}
 
+  /* ---------- Dividir rota: escolher o ponto de corte na própria lista ---------- */
+  .split-divider{display:flex;align-items:center;gap:10px;margin:14px 0;}
+  .split-divider-line{flex:1;border-top:1.5px dashed var(--line);}
+  .split-divider-btn{font-family:'Poppins',sans-serif;font-weight:600;font-size:12px;padding:8px 16px;border-radius:20px;
+    border:1.5px solid var(--wine);background:var(--card-bg);color:var(--wine);cursor:pointer;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:6px;transition:background .12s,color .12s;}
+  .split-divider-btn:hover,.split-divider-btn.selected{background:var(--wine);color:#fff;}
+  .split-preview-route{border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:12px;border:1px solid var(--line);}
+  .split-preview-route.route-a{background:var(--sage-tint);border-color:var(--sage);}
+  .split-preview-route.route-b{background:var(--danger-tint);border-color:var(--danger);}
+  .split-preview-route-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;}
+  .split-preview-route-title{font-weight:700;font-size:14px;}
+  .split-preview-route-title small{font-weight:400;color:var(--muted);font-size:12px;}
+  .split-preview-badge{font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--card-bg);white-space:nowrap;}
+  .split-preview-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:5px 0;}
+  .split-preview-row .label{color:var(--muted);}
+
   /* ---------- Adicionar parada (ex-Pedido Rápido) ---------- */
   .addstop-grid{display:grid;grid-template-columns:1.3fr 0.9fr;gap:18px;align-items:start;}
   @media (max-width:980px){.addstop-grid{grid-template-columns:1fr;}}
@@ -114,17 +131,6 @@
             <label class="f-label">Tempo de prova na hora (minutos)</label>
             <input type="number" id="tempoProvaInput" min="0">
           </div>
-        </div>
-      </div>
-
-      <div class="card" id="splitPanel" style="display:none;">
-        <div class="card-title" id="splitPanelTitle">Dividir rota</div>
-        <p class="note" style="margin:0 0 8px;">As duas partes passam a sair e retornar à loja separadamente.</p>
-        <label class="f-label">Dividir depois de</label>
-        <select id="splitPointSelect"></select>
-        <div class="form-actions">
-          <button class="btn btn-dark" id="splitConfirmBtn">Confirmar</button>
-          <button class="btn btn-outline" id="splitCancelBtn">Cancelar</button>
         </div>
       </div>
 
@@ -294,6 +300,18 @@
               <button class="btn btn-dark" id="finalizeBtn" style="margin-left:auto;">Concluir rota</button>
               <button class="btn btn-outline" id="reopenRouteBtn" style="display:none;margin-left:auto;">Reabrir rota</button>
             </div>
+            <div class="banner" id="splitModeBanner" style="display:none;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:flex-start;gap:10px;">
+                  <span style="flex-shrink:0;">ℹ️</span>
+                  <div>
+                    <strong id="splitModeBannerTitle">Modo de divisão ativado</strong>
+                    <div class="note" style="margin-top:2px;">Clique no ponto onde deseja dividir a rota. As duas rotas sairão e retornarão à loja separadamente.</div>
+                  </div>
+                </div>
+                <button class="btn btn-outline" id="splitModeCancelBtn" style="flex-shrink:0;">Cancelar</button>
+              </div>
+            </div>
             <div id="ordersList"></div>
             <div id="emptyOrders" class="empty-state" style="display:none;">
               Nenhuma parada ainda. Use "Adicionar parada" acima.
@@ -301,10 +319,15 @@
           </div>
         </div>
         <div>
-          <div class="card">
+          <div class="card" id="mapCard">
             <div class="card-title">Mapa da rota</div>
             <iframe id="routeMap" class="route-map" style="display:none;"></iframe>
             <p class="note" id="mapNote">O mapa aparece quando há pelo menos 2 pontos na rota.</p>
+          </div>
+          <div class="card" id="splitPreviewPanel" style="display:none;">
+            <div class="card-title">Prévia da divisão</div>
+            <p class="note" id="splitPreviewSubtitle" style="margin:0 0 14px;"></p>
+            <div id="splitPreviewBody"></div>
           </div>
         </div>
       </div>
@@ -341,6 +364,14 @@ let editingIndex = null;
 let dayConfig = null;            // currentRoute.config
 let travelMatrix = null;         // matriz de tempos entre todos os pontos da rota atual
 let matrixIndexById = {};
+
+// modo de divisão: escolher visualmente, na própria lista, onde cortar a
+// rota — em vez de um formulário separado. splitMode null = fora do modo;
+// 'initial' = primeira divisão; 'resplit' = mudando um corte já existente.
+let splitMode = null;
+let splitPreviewK = null;        // ponto de corte em prévia (nº de paradas na Rota 1)
+let splitMatrix = null;          // matriz de tempos dedicada à prévia (pode cobrir as 2 metades, no resplit)
+let splitMatrixIndexById = {};
 
 // estado da área "Adicionar parada" (ex-Pedido Rápido)
 let CLIENTS = [];
@@ -457,6 +488,7 @@ function renderAll(){
   renderOrders();
   renderKpis();
   renderMap();
+  renderSplitPreview();
 }
 
 // ---------- ABAS (só existem depois de uma divisão) ----------
@@ -482,10 +514,14 @@ function renderTabs(){
 }
 
 function renderActionButtons(){
+  document.getElementById('splitModeBanner').style.display = splitMode ? 'block' : 'none';
+
   const resplitBtn = document.getElementById('resplitBtn');
   const undoSplitBtn = document.getElementById('undoSplitBtn');
   const splitBtn = document.getElementById('splitBtn');
   const reopenBtn = document.getElementById('reopenRouteBtn');
+  const copyBtnEl = document.getElementById('copyBtn');
+  const mapsBtnEl = document.getElementById('mapsBtn');
   if(!currentRoute){
     organizeBtn.style.display = ''; organizeBtn.disabled = true;
     finalizeBtn.style.display = ''; finalizeBtn.disabled = true;
@@ -506,6 +542,21 @@ function renderActionButtons(){
     splitBtn.disabled = isFinalized || orders.slice(1,-1).length < 2;
     resplitBtn.style.display = 'none';
     undoSplitBtn.style.display = 'none';
+  }
+
+  // durante a escolha do ponto de corte, trava as outras ações — evita
+  // reorganizar/concluir/editar a rota enquanto o corte ainda não foi confirmado.
+  if(splitMode){
+    organizeBtn.disabled = true;
+    finalizeBtn.disabled = true;
+    copyBtnEl.disabled = true;
+    mapsBtnEl.disabled = true;
+    splitBtn.disabled = true;
+    resplitBtn.disabled = true;
+    undoSplitBtn.disabled = true;
+  } else {
+    copyBtnEl.disabled = false;
+    mapsBtnEl.disabled = false;
   }
 }
 
@@ -717,6 +768,54 @@ function ensureOrderIds(){
   return changed;
 }
 
+// ---------- LISTA NO MODO DE DIVISÃO ----------
+// enquanto o usuário escolhe onde cortar, a lista mostra a sequência
+// (a rota inteira, ou as duas metades combinadas no "mudar ponto de
+// corte") sem os controles de editar/mover/remover — só o botão de
+// divisor entre cada par de paradas reais.
+function splitIntermediates(){
+  return splitMode === 'resplit'
+    ? [...splitPair[0].orders.slice(1,-1), ...splitPair[1].orders.slice(1,-1)]
+    : orders.slice(1, -1);
+}
+function splitEndpoints(){
+  return splitMode === 'resplit'
+    ? { origin: splitPair[0].orders[0], destination: splitPair[1].orders[splitPair[1].orders.length-1] }
+    : { origin: orders[0], destination: orders[orders.length-1] };
+}
+function splitDisplayOrders(){
+  const { origin, destination } = splitEndpoints();
+  return [origin, ...splitIntermediates(), destination];
+}
+
+function renderSplitModeList(){
+  const displayOrders = splitDisplayOrders();
+  document.getElementById('emptyOrders').style.display = 'none';
+  ordersListEl.style.display = displayOrders.length ? 'block' : 'none';
+  const parts = [];
+  displayOrders.forEach((o, i) => {
+    const isEdge = (i === 0 || i === displayOrders.length - 1);
+    const cls = o.kind === 'avulsa' ? 'ticket avulsa' : 'ticket';
+    const meta = o.kind === 'avulsa' ? '' : (o.modes||[]).map(m => `<span class="pill">${escapeHtml(m)}</span>`).join('');
+    parts.push(`<div class="${cls}" data-order-id="${o._id}">
+      <div class="num">${i+1}</div><div class="body">
+      <div class="tname">${escapeHtml(o.name)}</div>
+      <div class="taddr">${escapeHtml(o.address)}${o.complement ? ' · ' + escapeHtml(o.complement) : ''}</div>
+      ${meta ? `<div class="tmeta">${meta}</div>` : ''}
+      </div></div>`);
+    if(!isEdge && i < displayOrders.length - 2){
+      const k = i; // corte depois desse intermediário = k paradas na Rota 1
+      const selected = splitPreviewK === k;
+      parts.push(`<div class="split-divider">
+        <div class="split-divider-line"></div>
+        <button type="button" class="split-divider-btn${selected?' selected':''}" data-split-k="${k}" title="Dividir depois desta parada">✂ Dividir rota aqui</button>
+        <div class="split-divider-line"></div>
+      </div>`);
+    }
+  });
+  ordersListEl.innerHTML = parts.join('');
+}
+
 function renderOrders(){
   if(!currentRoute){
     document.getElementById('emptyOrders').style.display = 'block';
@@ -725,10 +824,13 @@ function renderOrders(){
     return;
   }
   if(ensureOrderIds()) saveOrders();
-  document.getElementById('emptyOrders').style.display = orders.length === 0 ? 'block' : 'none';
-  ordersListEl.style.display = orders.length === 0 ? 'none' : 'block';
   organizeBtn.disabled = orders.length < 3;
   finalizeBtn.disabled = orders.length === 0;
+
+  if(splitMode){ renderSplitModeList(); return; }
+
+  document.getElementById('emptyOrders').style.display = orders.length === 0 ? 'block' : 'none';
+  ordersListEl.style.display = orders.length === 0 ? 'none' : 'block';
 
   const etas = computeEtas();
 
@@ -816,6 +918,13 @@ function extractCorreioQty(modes){
 }
 
 ordersListEl.addEventListener('click', (e) => {
+  const splitK = e.target.closest('[data-split-k]');
+  if(splitK){
+    splitPreviewK = parseInt(splitK.dataset.splitK, 10);
+    renderSplitModeList();
+    renderSplitPreview();
+    return;
+  }
   const pill = e.target.closest('.edit-pill:not(.tw-pill)');
   if(pill){
     pill.classList.toggle('active');
@@ -1050,33 +1159,159 @@ function onDragEnd(){
 
 // ---------- DIVIDIR ROTA ----------
 // A segunda rota só nasce de uma divisão explícita da rota principal: o
-// usuário escolhe depois de qual parada cortar (numeração 1..N entre as
-// paradas reais, sem contar loja de saída/retorno), e cada metade fica
-// com sua própria cópia da loja como origem/destino — sai e volta pra
-// loja separadamente. "Mudar o ponto de corte" reaproveita o mesmo painel,
-// olhando a sequência combinada das duas metades atuais.
+// usuário entra no "modo de divisão", clica o ponto de corte na própria
+// lista (numeração 1..N entre as paradas reais, sem contar loja de saída/
+// retorno) e confirma numa prévia com os números de cada metade. Cada
+// metade fica com sua própria cópia da loja como origem/destino — sai e
+// volta pra loja separadamente. "Mudar o ponto de corte" reaproveita o
+// mesmo modo, olhando a sequência combinada das duas metades atuais.
 function cloneStop(o){ return Object.assign({}, o, { _id: 'o' + Date.now() + Math.random().toString(36).slice(2,8) }); }
 
-const splitPanel = document.getElementById('splitPanel');
-const splitPointSelect = document.getElementById('splitPointSelect');
-
-function openSplitPanel(kind){
-  const intermediates = kind === 'initial'
-    ? orders.slice(1, -1)
+async function enterSplitMode(kind){
+  const intermediates = kind === 'initial' ? orders.slice(1, -1)
     : [...splitPair[0].orders.slice(1,-1), ...splitPair[1].orders.slice(1,-1)];
   if(intermediates.length < 2){ showToast('É preciso ter pelo menos 2 paradas pra dividir a rota'); return; }
-  document.getElementById('splitPanelTitle').textContent = kind === 'initial' ? 'Dividir rota' : 'Mudar ponto de corte';
-  splitPointSelect.innerHTML = intermediates.slice(0, -1).map((o, i) =>
-    `<option value="${i+1}">Depois de "${escapeHtml(o.name)}" (parada ${i+1} de ${intermediates.length})</option>`
-  ).join('');
+
+  splitMode = kind;
   const defaultK = kind === 'initial' ? Math.ceil(intermediates.length/2) : (splitPair[0].orders.length - 2);
-  splitPointSelect.value = String(Math.min(Math.max(defaultK,1), intermediates.length-1));
-  splitPanel.dataset.kind = kind;
-  splitPanel.style.display = 'block';
+  splitPreviewK = Math.min(Math.max(defaultK, 1), intermediates.length - 1);
+  document.getElementById('splitModeBannerTitle').textContent = kind === 'initial' ? 'Modo de divisão ativado' : 'Mudar ponto de corte';
+
+  if(kind === 'initial'){
+    // a rota inteira já tem sua própria travelMatrix carregada — reaproveita.
+    splitMatrix = travelMatrix;
+    splitMatrixIndexById = matrixIndexById;
+  } else if(hasGoogleMapsKey()){
+    // no resplit as paradas vêm de 2 rotas diferentes — precisa de uma
+    // matriz própria cobrindo as duas metades combinadas.
+    const { origin, destination } = splitEndpoints();
+    const seq = [origin, ...intermediates, destination];
+    try {
+      splitMatrix = await computeRouteMatrixRequest(seq.map(o => o.address));
+      splitMatrixIndexById = {};
+      seq.forEach((o, i) => { splitMatrixIndexById[o._id] = i; });
+    } catch(e){ splitMatrix = null; splitMatrixIndexById = {}; }
+  } else {
+    splitMatrix = null; splitMatrixIndexById = {};
+  }
+
+  renderActionButtons();
+  renderOrders();
+  renderSplitPreview();
 }
-document.getElementById('splitBtn').addEventListener('click', () => openSplitPanel('initial'));
-document.getElementById('resplitBtn').addEventListener('click', () => openSplitPanel('resplit'));
-document.getElementById('splitCancelBtn').addEventListener('click', () => { splitPanel.style.display = 'none'; });
+document.getElementById('splitBtn').addEventListener('click', () => enterSplitMode('initial'));
+document.getElementById('resplitBtn').addEventListener('click', () => enterSplitMode('resplit'));
+
+function exitSplitMode(){
+  splitMode = null; splitPreviewK = null; splitMatrix = null; splitMatrixIndexById = {};
+  renderActionButtons();
+  renderOrders();
+  renderSplitPreview();
+}
+document.getElementById('splitModeCancelBtn').addEventListener('click', exitSplitMode);
+
+// simula uma metade da rota (saída própria + trechos + tempo de serviço)
+// usando a matriz dedicada da prévia — mesma fórmula de computeEtas, só
+// que devolve só o resumo final (retorno/km/tempo), não o array de ETAs.
+function summarizeSplitSegment(origin, group, destination, cfg){
+  const seq = [origin, ...group, destination];
+  const result = { paradas: group.length, saida: (cfg && cfg.saida) || null, retorno: null, km: null, tempoMin: null };
+  if(!cfg || !cfg.saida || !splitMatrix) return result;
+  let t = timeToMinutes(cfg.saida), km = 0;
+  for(let i = 0; i < seq.length; i++){
+    if(i > 0){
+      const a = splitMatrixIndexById[seq[i-1]._id], b = splitMatrixIndexById[seq[i]._id];
+      if(a === undefined || b === undefined || !splitMatrix.durationMin[a]) return result;
+      const dur = splitMatrix.durationMin[a][b], dist = splitMatrix.distanceMeters[a][b];
+      if(!isFinite(dur)) return result;
+      t += dur; km += (dist || 0) / 1000;
+    }
+    if(i > 0 && i < seq.length - 1) t += serviceTimeFor(seq[i], cfg);
+  }
+  result.retorno = t; result.km = km; result.tempoMin = t - timeToMinutes(cfg.saida);
+  return result;
+}
+
+// horário sugerido de saída da Rota 2 numa divisão nova: o retorno
+// previsto da Rota 1 + um intervalo pra descarregar/carregar de novo —
+// só uma sugestão inicial, sempre editável depois (nunca é herdado
+// automaticamente sem o usuário poder mudar).
+const INTERVALO_SUGERIDO_ENTRE_ROTAS_MIN = 15;
+
+function computeSplitPreview(k){
+  const intermediates = splitIntermediates();
+  const { origin, destination } = splitEndpoints();
+  const group1 = intermediates.slice(0, k);
+  const group2 = intermediates.slice(k);
+
+  const cfg1 = splitMode === 'resplit' ? splitPair[0].config : dayConfig;
+  const r1 = summarizeSplitSegment(origin, group1, destination, cfg1);
+
+  let cfg2;
+  if(splitMode === 'resplit'){
+    cfg2 = splitPair[1].config;
+  } else {
+    const saida2 = (r1.retorno != null) ? fmtTime(r1.retorno + INTERVALO_SUGERIDO_ENTRE_ROTAS_MIN) : '';
+    cfg2 = Object.assign({}, cfg1, { saida: saida2 });
+  }
+  const r2 = summarizeSplitSegment(origin, group2, destination, cfg2);
+
+  return { r1, r2, total: intermediates.length };
+}
+
+function fmtHoursMin(min){
+  if(min == null) return '—';
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return (h > 0 ? h + 'h' : '') + String(m).padStart(2, '0') + 'min';
+}
+
+function renderSplitPreview(){
+  const mapCard = document.getElementById('mapCard');
+  const panel = document.getElementById('splitPreviewPanel');
+  if(!splitMode || splitPreviewK == null){
+    panel.style.display = 'none';
+    mapCard.style.display = '';
+    return;
+  }
+  mapCard.style.display = 'none';
+  panel.style.display = 'block';
+
+  const { r1, r2, total } = computeSplitPreview(splitPreviewK);
+  document.getElementById('splitPreviewSubtitle').textContent = `Com base na divisão após a parada ${splitPreviewK}`;
+
+  function routeBlock(cls, label, range, r){
+    return `<div class="split-preview-route ${cls}">
+      <div class="split-preview-route-head">
+        <div class="split-preview-route-title">${label} <small>(paradas ${range})</small></div>
+        <span class="split-preview-badge">${r.paradas} parada${r.paradas===1?'':'s'}</span>
+      </div>
+      <div class="split-preview-row"><span class="label">Saída</span><strong>${r.saida || '—'}</strong></div>
+      <div class="split-preview-row"><span class="label">Retorno previsto</span><strong>${r.retorno!=null?fmtTime(r.retorno):'—'}</strong></div>
+      <div class="split-preview-row"><span class="label">Distância estimada</span><strong>${r.km!=null?r.km.toFixed(1).replace('.',',')+' km':'—'}</strong></div>
+      <div class="split-preview-row"><span class="label">Tempo estimado</span><strong>${fmtHoursMin(r.tempoMin)}</strong></div>
+    </div>`;
+  }
+
+  document.getElementById('splitPreviewBody').innerHTML =
+    routeBlock('route-a', 'Rota 1', `1 a ${splitPreviewK}`, r1) +
+    routeBlock('route-b', 'Rota 2', `${splitPreviewK+1} a ${total}`, r2) +
+    `<div class="banner" style="margin-bottom:14px;">Ambas as rotas saem e retornam à loja separadamente. Você poderá ajustar os horários depois da divisão.</div>
+     <div class="form-actions" style="margin-top:0;">
+       <button class="btn btn-dark" id="splitPreviewConfirmBtn" style="flex:1;">Confirmar divisão</button>
+       <button class="btn btn-outline" id="splitPreviewCancelBtn" style="flex:1;">Cancelar</button>
+     </div>`;
+
+  document.getElementById('splitPreviewConfirmBtn').addEventListener('click', confirmSplit);
+  document.getElementById('splitPreviewCancelBtn').addEventListener('click', exitSplitMode);
+}
+
+async function confirmSplit(){
+  const k = splitPreviewK;
+  const kind = splitMode;
+  splitMode = null; splitPreviewK = null; splitMatrix = null; splitMatrixIndexById = {};
+  if(kind === 'initial') await performInitialSplit(k);
+  else await performResplit(k);
+}
 
 async function performInitialSplit(k){
   const origin = orders[0], destination = orders[orders.length-1];
@@ -1117,14 +1352,6 @@ async function performResplit(k){
   await refreshRouteState(activeTab);
   renderAll();
 }
-
-document.getElementById('splitConfirmBtn').addEventListener('click', async () => {
-  const k = parseInt(splitPointSelect.value, 10);
-  const kind = splitPanel.dataset.kind;
-  splitPanel.style.display = 'none';
-  if(kind === 'initial') await performInitialSplit(k);
-  else await performResplit(k);
-});
 
 document.getElementById('undoSplitBtn').addEventListener('click', async () => {
   const [r1, r2] = splitPair;
