@@ -3,7 +3,6 @@
 const NAV_ITEMS = [
   { key: 'dashboard', href: 'dashboard.html', icon: '&#9635;', label: 'Dashboard' },
   { key: 'rota', href: 'rota-do-dia.html', icon: '&#9679;', label: 'Rota do Dia' },
-  { key: 'planejamento', href: 'planejamento.html', icon: '&#9201;', label: 'Planejamento' },
   { key: 'historico', href: 'historico.html', icon: '&#9776;', label: 'Histórico de Rotas' },
   { key: 'config', href: 'configuracoes.html', icon: '&#9881;', label: 'Configurações' },
 ];

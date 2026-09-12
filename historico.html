@@ -44,6 +44,17 @@
       </div>
 
       <div class="card">
+        <div class="card-title">Resumo por dia</div>
+        <p class="note" style="margin:0 0 8px;">Soma as rotas concluídas de cada dia — útil quando há mais de uma rota no mesmo dia.</p>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr><th>Data</th><th>Rotas</th><th>Paradas</th><th>Km</th></tr></thead>
+            <tbody id="daySummaryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-title">Total do período</div>
         <div class="kpi-grid" style="margin-bottom:0;">
           <div class="kpi-card"><div class="kpi-label">Rotas</div><div class="kpi-value" id="totRotas">0</div></div>
@@ -89,6 +100,24 @@ async function loadRange(start, end){
   document.getElementById('historyBody').innerHTML = rows.length
     ? rows.join('')
     : '<tr><td colspan="10" class="empty-state">Nenhuma rota no período.</td></tr>';
+
+  // resumo por dia — soma as rotas de cada data, pra ver de relance dias
+  // com mais de uma rota (ex: 2 rotas · 23 paradas · 99 km).
+  const byDay = {};
+  for(const r of routes){
+    const s = summarizeRoute(r);
+    if(!byDay[r.date]) byDay[r.date] = { rotas: 0, paradas: 0, km: 0 };
+    byDay[r.date].rotas++;
+    byDay[r.date].paradas += s.paradas;
+    byDay[r.date].km += s.km;
+  }
+  const dayRows = Object.keys(byDay).sort().reverse().map(d => {
+    const v = byDay[d];
+    return `<tr><td>${fmtDate(d)}</td><td>${v.rotas} rota${v.rotas > 1 ? 's' : ''}</td><td>${v.paradas}</td><td>${v.km.toFixed(1).replace('.',',')}</td></tr>`;
+  });
+  document.getElementById('daySummaryBody').innerHTML = dayRows.length
+    ? dayRows.join('')
+    : '<tr><td colspan="4" class="empty-state">Nenhuma rota no período.</td></tr>';
 
   document.getElementById('totRotas').textContent = totRotas;
   document.getElementById('totParadas').textContent = totParadas;

@@ -95,14 +95,17 @@ async function init(){
   document.getElementById('kpiPendentes').textContent = pendentes;
   document.getElementById('kpiKm').textContent = km.toFixed(1).replace('.',',') + ' km';
 
-  // rota do dia (ativa ou rascunho atual)
+  // rota do dia (alguma rota em andamento, ou pedidos ainda não atribuídos)
   const activeRoute = routes.find(r => r.status === 'em_andamento');
   const rotaBody = document.getElementById('rotaAtualBody');
   if(activeRoute || liveOrders.length > 0){
-    const cfg = await loadDoc(configKey(), null);
+    const saida = activeRoute && activeRoute.config && activeRoute.config.saida;
+    const note = saida ? 'Saída: ' + saida
+      : activeRoute ? 'Horário de saída não configurado'
+      : liveOrders.length + ' pedido(s) aguardando rota';
     rotaBody.innerHTML = `
       <span class="tag tag-progress">Em andamento</span>
-      <p class="note" style="margin-top:10px;">${cfg && cfg.saida ? 'Saída: ' + cfg.saida : 'Horário de saída não configurado'}</p>
+      <p class="note" style="margin-top:10px;">${note}</p>
       <a href="rota-do-dia.html" class="btn btn-primary" style="width:100%;margin-top:10px;">Ver rota</a>`;
   } else if(routes.length > 0){
     rotaBody.innerHTML = `<span class="tag tag-done">Nenhuma rota em andamento</span>

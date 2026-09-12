@@ -1,6 +1,6 @@
-// Config e utilitários compartilhados entre index.html (Pedido Rápido) e
-// planejamento.html (Planejamento da Rota). Não duplicar essa lógica nas
-// páginas — sempre carregar este arquivo antes do script de cada página.
+// Config e utilitários compartilhados entre as páginas do painel (Rota do
+// Dia, Histórico, Detalhes da Rota, Dashboard). Não duplicar essa lógica —
+// sempre carregar este arquivo antes do script de cada página.
 
 // Chave usada para chamar a Routes API do Google (otimização de rota e
 // cálculo de trechos de deslocamento). O placeholder abaixo é substituído
@@ -41,10 +41,13 @@ async function ensureAuth(){
 }
 
 function dateSuffix(){ return new Date().toISOString().slice(0,10); }
+// orders-YYYY-MM-DD: hoje guarda a pool "Não atribuídos" da Rota do Dia —
+// pedidos ainda sem rota (era, antes das rotas múltiplas, o rascunho único
+// do dia). configKey()/finalizedKey() ficam só pra ler dados antigos na
+// migração de uma rota em montagem sob o modelo anterior.
 function todayKey(){ return 'orders-' + dateSuffix(); }
 function finalizedKey(){ return 'finalized-' + dateSuffix(); }
 function configKey(){ return 'config-' + dateSuffix(); }
-function reportKey(){ return 'report-' + dateSuffix(); }
 
 // Leitura/escrita genérica pros documentos do app (pedidos do dia, rota
 // finalizada, configuração do dia, relatório calculado, base de clientes).
@@ -118,8 +121,8 @@ async function computeRoutesRequest({ origin, destination, intermediates, optimi
 }
 
 // Busca os trechos (distância/tempo) de uma rota já com a ordem definida —
-// usado pelo Planejamento (calcular chegadas) e pela Rota do Dia (km/tempo
-// pra finalizar e pro histórico). Fonte única, evita duplicar o parsing.
+// usado pela Rota do Dia (km/tempo pra finalizar e pro histórico). Fonte
+// única, evita duplicar o parsing.
 async function fetchRouteLegs(orders){
   const addresses = orders.map(o => o.address);
   const data = await computeRoutesRequest({
@@ -175,45 +178,43 @@ async function loadRoutesForDate(dateStr){
   return routes.sort((a, b) => a.seq - b.seq);
 }
 
-// rota com status "em_andamento" de hoje, se existir (só existe quando o
-// usuário reabre uma rota já finalizada pra editar).
-async function findActiveRoute(dateStr){
-  const routes = await loadRoutesForDate(dateStr);
-  return routes.find(r => r.status === ROUTE_STATUS.ATIVA) || null;
-}
-
-// grava a rota atual (rascunho de orders-YYYY-MM-DD) como finalizada.
-// Se `route` já existir (reabertura), atualiza o mesmo registro em vez de
-// criar um novo — finalizar de novo nunca duplica a rota.
-async function finalizeRouteRecord(dateStr, orders, legs, existingRoute){
+// cria uma rota nova pro dia (a N-ésima) e já grava no índice — usada pela
+// Rota do Dia tanto pra "+ Nova rota" quanto pra migrar automaticamente a
+// rota em montagem sob o modelo antigo (uma só por dia) pra "Rota 1".
+async function createRoute(dateStr, config){
   const index = await loadRouteIndex(dateStr);
-  let route = existingRoute;
-  if(!route){
-    const seq = index.count + 1;
-    route = { id: routeDocKey(dateStr, seq), date: dateStr, seq, history: [] };
-    index.count = seq;
-    index.ids.push(route.id);
-  }
-  route.orders = orders;
-  route.legs = legs;
-  route.status = ROUTE_STATUS.FINALIZADA;
-  route.updatedAt = Date.now();
-  route.finalizedAt = Date.now();
-  route.history.push({ at: Date.now(), note: existingRoute ? 'Reorganizada e finalizada novamente' : 'Rota finalizada' });
+  const seq = index.count + 1;
+  const route = {
+    id: routeDocKey(dateStr, seq), date: dateStr, seq,
+    status: ROUTE_STATUS.ATIVA, orders: [], legs: null, config,
+    history: [{ at: Date.now(), note: 'Rota criada' }]
+  };
+  index.count = seq;
+  index.ids.push(route.id);
   await saveDoc(route.id, route);
   await saveDoc(routeIndexKey(dateStr), index);
   return route;
 }
 
-// reabre uma rota finalizada pra edição — o rascunho (orders-YYYY-MM-DD)
-// passa a ser a cópia dessa rota, reaproveitando toda a lógica existente
-// de organizar/editar/adicionar parada.
+// marca uma rota (já existente como documento — ver createRoute) como
+// finalizada, com os pedidos e trechos definitivos.
+async function finalizeRoute(route, legs){
+  route.legs = legs;
+  route.status = ROUTE_STATUS.FINALIZADA;
+  route.updatedAt = Date.now();
+  route.finalizedAt = Date.now();
+  route.history.push({ at: Date.now(), note: 'Rota concluída' });
+  await saveDoc(route.id, route);
+  return route;
+}
+
+// reabre uma rota finalizada pra edição — a rota já é o próprio documento
+// editável (cada rota do dia tem o seu), então só muda o status.
 async function reopenRoute(route){
   route.status = ROUTE_STATUS.ATIVA;
   route.updatedAt = Date.now();
   route.history.push({ at: Date.now(), note: 'Reaberta para edição' });
   await saveDoc(route.id, route);
-  await saveDoc(todayKey(), route.orders);
   return route;
 }
 
@@ -282,10 +283,9 @@ function timeWindowLabel(tw){
 }
 
 // ---------- Matemática de horário compartilhada ----------
-// Usada tanto pela heurística de "Organizar rota" (index.html, que precisa
-// simular chegadas pra decidir a ordem) quanto pelo relatório do
-// Planejamento (planejamento.html, que só reporta) — fonte única, pra as
-// duas partes nunca discordarem sobre o que conta como violação.
+// Usada pela heurística de "Organizar rota" e pela previsão de chegada da
+// Rota do Dia, e pelos Detalhes da Rota — fonte única, pra nunca discordar
+// sobre o que conta como violação ou sobre o horário previsto de uma parada.
 function timeToMinutes(hhmm){
   if(!hhmm) return null;
   const [h, m] = hhmm.split(':').map(Number);
@@ -300,6 +300,27 @@ function violatesWindow(tw, etaMin){
   if(tw.type === 'before') return etaMin > limit;
   if(tw.type === 'after') return etaMin < limit;
   return false;
+}
+
+// horário de saída + trechos (legs já numa ordem fixa, salvos na conclusão
+// da rota) + tempo de serviço de cada parada — devolve o horário previsto
+// de chegada em cada posição. Usado pra rota já com ordem definida
+// (Detalhes da Rota, e o aviso de intervalo entre rotas da Rota do Dia
+// olhando a rota anterior). Pro cálculo AO VIVO enquanto uma rota ainda
+// está sendo montada — que precisa recalcular a qualquer reordenação sem
+// rebuscar a API — a Rota do Dia usa sua própria travelMatrix (mesma
+// fórmula, indexada por par de pontos em vez de sequência fixa).
+function computeEtasFromLegs(orders, legs, cfg){
+  if(!legs || legs.length !== orders.length - 1 || !cfg || !cfg.saida) return null;
+  let t = timeToMinutes(cfg.saida);
+  const etas = [];
+  for(let i = 0; i < orders.length; i++){
+    if(i > 0) t += legs[i-1].durationSec / 60;
+    etas.push(t);
+    const isEdge = (i === 0 || i === orders.length - 1);
+    if(!isEdge) t += serviceTimeFor(orders[i], cfg);
+  }
+  return etas;
 }
 
 // Chamada à Route Matrix da Routes API — devolve tempo/distância entre

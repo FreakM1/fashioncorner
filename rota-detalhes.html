@@ -70,26 +70,13 @@ function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); s
 
 let route = null;
 
-// horário previsto de chegada em cada parada, calculado do mesmo jeito
-// que na Rota do Dia/Planejamento: saída + deslocamentos (legs já
-// salvos na conclusão da rota) + tempo padrão + tempo de prova. Usa a
-// config do DIA da rota (não a de hoje) pra continuar correto mesmo
-// olhando uma rota antiga.
+// horário previsto de chegada em cada parada — cada rota já carrega sua
+// própria config (saída/tempo padrão/prova, definida na Rota do Dia).
+// Rotas antigas (de antes das rotas múltiplas) não têm route.config; pra
+// essas, cai de volta pra config-<data da rota>, que era onde ficava salva.
 async function computeStopEtas(route){
-  const orders = route.orders || [];
-  const legs = route.legs;
-  if(!legs || legs.length !== orders.length - 1) return null;
-  const cfg = await loadDoc('config-' + route.date, null);
-  if(!cfg || !cfg.saida) return null;
-  let t = timeToMinutes(cfg.saida);
-  const etas = [];
-  for(let i = 0; i < orders.length; i++){
-    if(i > 0) t += legs[i-1].durationSec / 60;
-    etas.push(t);
-    const isEdge = (i === 0 || i === orders.length - 1);
-    if(!isEdge) t += serviceTimeFor(orders[i], cfg);
-  }
-  return etas;
+  const cfg = route.config || await loadDoc('config-' + route.date, null);
+  return computeEtasFromLegs(route.orders || [], route.legs, cfg);
 }
 
 async function init(){
