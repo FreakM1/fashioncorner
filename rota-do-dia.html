@@ -90,7 +90,6 @@
     <div class="page">
 
       <div id="migratedBanner" class="banner" style="display:none;"></div>
-      <div id="finishedBanner" class="banner" style="display:none;background:#E9F1EA;border-color:var(--sage);"></div>
       <div id="intervalWarning" class="banner" style="display:none;"></div>
 
       <div class="route-tabs" id="routeTabs" style="display:none;"></div>
@@ -337,7 +336,6 @@ let mode = 'empty';              // 'empty' | 'single' | 'split'
 let splitPair = null;            // [rotaA, rotaB] ordenadas por seq, quando mode==='split'
 let activeTab = null;            // id da rota ativa dentro do splitPair (só usado em split)
 let currentRoute = null;         // rota mostrada agora (null só quando mode==='empty')
-let finishedBannerRoutes = [];   // 1 ou 2 rotas recém concluídas, pra mostrar banner com reabrir
 let orders = [];                 // alias pra currentRoute.orders
 let editingIndex = null;
 let dayConfig = null;            // currentRoute.config
@@ -388,36 +386,33 @@ async function init(){
     const tabBtn = e.target.closest('.route-tab[data-tab]');
     if(tabBtn) await switchTab(tabBtn.dataset.tab);
   });
-  document.getElementById('finishedBanner').addEventListener('click', async (e) => {
-    const btn = e.target.closest('.reopen-finished-btn');
-    if(!btn) return;
-    const route = routes.find(r => r.id === btn.dataset.routeId);
-    if(!route) return;
-    await reopenRoute(route);
-    showToast(`Rota ${route.seq} reaberta`);
-    await refreshRouteState(route.id);
-    renderAll();
-  });
 
-  await refreshRouteState();
+  // ?edit=<routeId> — link "Editar rota" do Histórico. A rota já chega
+  // reaberta (Histórico chama reopenRoute antes de navegar pra aqui);
+  // só precisamos mostrar ela mesmo que não seja a última do dia por seq.
+  const editId = new URLSearchParams(location.search).get('edit');
+  await refreshRouteState(editId || undefined);
   renderAll();
 }
 
 // ---------- ESTADO DA ROTA (única, ou dividida em duas) ----------
-// Decide o que mostrar a partir das rotas de hoje: se a última rota tem
-// uma dupla de divisão ainda não totalmente concluída, mostra as 2 abas;
-// se a última rota está ativa (não dividida), mostra ela direto, sem
-// abas; senão (dia vazio, ou última rota/dupla já concluída), fica vazia
-// — pronta pra uma rota nova nascer só quando o usuário adicionar a
+// Decide o que mostrar a partir das rotas de hoje: por padrão, a última
+// rota por seq — mas se vier um preferRouteId (reabertura via "Editar
+// rota" no Histórico, ou o próprio id que acabamos de criar/concluir/
+// dividir), essa rota específica tem prioridade sobre a última. Se ela
+// (ou a dupla dela) tiver uma divisão ainda não totalmente concluída,
+// mostra as 2 abas; se estiver ativa (não dividida), mostra ela direto,
+// sem abas; senão (dia vazio, ou rota/dupla já concluída), fica vazia —
+// pronta pra uma rota nova nascer só quando o usuário adicionar a
 // primeira parada (ensureWorkingRoute).
 async function refreshRouteState(preferRouteId){
   routes = await loadRoutesForDate(dateStr);
-  const last = routes.length ? routes[routes.length - 1] : null;
-  finishedBannerRoutes = [];
+  const anchor = (preferRouteId && routes.find(r => r.id === preferRouteId))
+    || (routes.length ? routes[routes.length - 1] : null);
 
-  if(last && last.splitWith){
-    const partner = routes.find(r => r.id === last.splitWith);
-    const pair = [last, partner].sort((a,b) => a.seq - b.seq);
+  if(anchor && anchor.splitWith){
+    const partner = routes.find(r => r.id === anchor.splitWith);
+    const pair = [anchor, partner].sort((a,b) => a.seq - b.seq);
     if(!pair.every(r => r.status === ROUTE_STATUS.FINALIZADA)){
       splitPair = pair;
       mode = 'split';
@@ -427,15 +422,12 @@ async function refreshRouteState(preferRouteId){
       await refreshTravelMatrix();
       return;
     }
-    finishedBannerRoutes = pair;
-  } else if(last && last.status === ROUTE_STATUS.ATIVA){
+  } else if(anchor && anchor.status === ROUTE_STATUS.ATIVA){
     mode = 'single'; splitPair = null; activeTab = null;
-    currentRoute = last;
+    currentRoute = anchor;
     orders = currentRoute.orders; dayConfig = currentRoute.config;
     await refreshTravelMatrix();
     return;
-  } else if(last){
-    finishedBannerRoutes = [last];
   }
 
   mode = 'empty'; splitPair = null; activeTab = null; currentRoute = null;
@@ -459,7 +451,6 @@ async function ensureWorkingRoute(){
 
 function renderAll(){
   renderTabs();
-  renderFinishedBanner();
   renderActionButtons();
   renderConfigInputs();
   renderIntervalWarning();
@@ -488,18 +479,6 @@ function renderTabs(){
     const doneMark = r.status === ROUTE_STATUS.FINALIZADA ? ' ✓' : '';
     return `<button class="route-tab ${activeTab===r.id?'active':''}" data-tab="${r.id}">Rota ${r.seq}${doneMark}</button>`;
   }).join('');
-}
-
-function renderFinishedBanner(){
-  const el = document.getElementById('finishedBanner');
-  if(finishedBannerRoutes.length === 0){ el.style.display = 'none'; return; }
-  el.style.display = 'block';
-  const label = finishedBannerRoutes.length === 2
-    ? `Rota ${finishedBannerRoutes[0].seq} e Rota ${finishedBannerRoutes[1].seq} concluídas.`
-    : `Rota ${finishedBannerRoutes[0].seq} concluída.`;
-  el.innerHTML = label + ' ' + finishedBannerRoutes.map(r =>
-    `<button class="btn btn-outline reopen-finished-btn" data-route-id="${r.id}" style="margin-left:8px;padding:6px 12px;font-size:12px;">Reabrir Rota ${r.seq}</button>`
-  ).join('');
 }
 
 function renderActionButtons(){

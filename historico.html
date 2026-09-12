@@ -36,7 +36,7 @@
           <table class="data-table clickable">
             <thead><tr>
               <th>Data</th><th>Rota</th><th>Paradas</th><th>Entregas</th><th>Trocas</th><th>Provas</th>
-              <th>Retiradas</th><th>Não entregues</th><th>Km</th><th>Status</th>
+              <th>Retiradas</th><th>Não entregues</th><th>Km</th><th>Status</th><th>Ações</th>
             </tr></thead>
             <tbody id="historyBody"></tbody>
           </table>
@@ -77,6 +77,15 @@ renderShell({ active: 'historico', title: 'Histórico de Rotas', subtitle: 'Toda
 
 function fmtDate(d){ return d.split('-').reverse().join('/'); }
 
+// reabre a rota (fica editável de novo) e volta pra Rota do Dia já
+// mostrando ela — mesmo que não seja a última rota criada hoje.
+async function editRoute(id){
+  const route = await loadDoc(id, null);
+  if(!route) return;
+  await reopenRoute(route);
+  location.href = 'rota-do-dia.html?edit=' + encodeURIComponent(id);
+}
+
 async function loadRange(start, end){
   document.getElementById('startDate').value = start;
   document.getElementById('endDate').value = end;
@@ -84,22 +93,29 @@ async function loadRange(start, end){
   // uma rota ainda em andamento não aparece aqui, só na Rota do Dia.
   const routes = await loadFinalizedRoutesInRange(start, end);
 
+  const today = dateSuffix();
   let totRotas=0, totParadas=0, totEntregas=0, totTrocas=0, totNaoEntregues=0, totKm=0;
   const rows = routes.map(r => {
     const s = summarizeRoute(r);
     totRotas++; totParadas += s.paradas; totEntregas += s.entregas; totTrocas += s.trocas;
     totNaoEntregues += s.naoEntregues; totKm += s.km;
     const statusTag = '<span class="tag tag-done">Concluída</span>';
+    // "Editar rota" só faz sentido pra rotas de hoje — a Rota do Dia só
+    // trabalha com o dia atual.
+    const actionCell = r.date === today
+      ? `<button type="button" class="btn btn-outline" style="padding:6px 10px;font-size:11px;" onclick="event.stopPropagation(); editRoute('${r.id}')">Editar rota</button>`
+      : '—';
     return `<tr onclick="location.href='rota-detalhes.html?id=${r.id}'">
       <td>${fmtDate(r.date)}</td><td>Rota ${r.seq}</td><td>${s.paradas}</td><td>${s.entregas}</td>
       <td>${s.trocas}</td><td>${s.provas}</td><td>${s.retiradas}</td>
       <td>${s.naoEntregues || '—'}</td><td>${s.km.toFixed(1).replace('.',',')}</td><td>${statusTag}</td>
+      <td>${actionCell}</td>
     </tr>`;
   });
 
   document.getElementById('historyBody').innerHTML = rows.length
     ? rows.join('')
-    : '<tr><td colspan="10" class="empty-state">Nenhuma rota no período.</td></tr>';
+    : '<tr><td colspan="11" class="empty-state">Nenhuma rota no período.</td></tr>';
 
   // resumo por dia — soma as rotas de cada data, pra ver de relance dias
   // com mais de uma rota (ex: 2 rotas · 23 paradas · 99 km).
