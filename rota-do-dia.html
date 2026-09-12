@@ -748,8 +748,6 @@ function renderOrders(){
       ${o.obs ? `<div class="tobs">${escapeHtml(o.obs)}</div>` : ''}
       </div><div class="actions">
         <button class="mini-btn" onclick="openEditOrder(${i})" title="Editar">✎</button>
-        <button class="mini-btn" onclick="moveOrder(${i},-1)" title="Subir">↑</button>
-        <button class="mini-btn" onclick="moveOrder(${i},1)" title="Descer">↓</button>
         <button class="mini-btn" onclick="removeOrder(${i})" title="Remover">✕</button>
       </div></div>`;
   }).join('');
@@ -869,7 +867,6 @@ function saveEditOrder(i){
   showToast('Pedido atualizado');
 }
 
-function moveOrder(i, dir){ const j=i+dir; if(j<0||j>=orders.length) return; [orders[i],orders[j]]=[orders[j],orders[i]]; renderOrders(); saveOrders(); }
 function removeOrder(i){ orders.splice(i,1); renderOrders(); saveOrders(); }
 
 // ---------- ORGANIZAR ROTA ----------
