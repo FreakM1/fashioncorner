@@ -11,6 +11,9 @@
 <style>
   .dash-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start;}
   @media (max-width:980px){.dash-grid{grid-template-columns:1fr;}}
+  .dash-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;align-items:start;}
+  @media (max-width:1200px){.dash-grid-3{grid-template-columns:1fr 1fr;}}
+  @media (max-width:700px){.dash-grid-3{grid-template-columns:1fr;}}
   .bar-chart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:6px;padding-bottom:10px;border-bottom:1px solid var(--line);}
   .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
   .bar{width:100%;max-width:26px;background:var(--wine);border-radius:5px 5px 0 0;min-height:2px;transition:background .12s;}
@@ -28,7 +31,7 @@
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-card-top">
-            <span class="kpi-icon-chip">&#128717;</span>
+            <span class="kpi-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.3" y="6" width="13.4" height="9.2" rx="1.3"/><path d="M2.3 6 9 2l6.7 4"/><line x1="9" y1="6" x2="9" y2="15.2"/></svg></span>
             <span class="kpi-card-label-row">Pedidos hoje</span>
           </div>
           <div class="kpi-value" id="kpiPedidos">0</div>
@@ -36,7 +39,7 @@
         </div>
         <div class="kpi-card">
           <div class="kpi-card-top">
-            <span class="kpi-icon-chip kpi-icon-chip--sage">&#10003;</span>
+            <span class="kpi-icon-chip kpi-icon-chip--sage"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,9.5 7,13.5 15,4.5"/></svg></span>
             <span class="kpi-card-label-row">Entregues</span>
           </div>
           <div class="kpi-value" id="kpiEntregues">0</div>
@@ -44,7 +47,7 @@
         </div>
         <div class="kpi-card">
           <div class="kpi-card-top">
-            <span class="kpi-icon-chip kpi-icon-chip--gold">&#9888;</span>
+            <span class="kpi-icon-chip kpi-icon-chip--gold"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2 1.3 16h15.4L9 2Z"/><line x1="9" y1="7.5" x2="9" y2="10.8"/><line x1="9" y1="13.2" x2="9" y2="13.3"/></svg></span>
             <span class="kpi-card-label-row">Pendentes</span>
           </div>
           <div class="kpi-value" id="kpiPendentes">0</div>
@@ -52,7 +55,7 @@
         </div>
         <div class="kpi-card">
           <div class="kpi-card-top">
-            <span class="kpi-icon-chip kpi-icon-chip--info">&#128205;</span>
+            <span class="kpi-icon-chip kpi-icon-chip--info"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16s6-5.6 6-9.7A6 6 0 0 0 3 6.3C3 10.4 9 16 9 16Z"/><circle cx="9" cy="6.4" r="2"/></svg></span>
             <span class="kpi-card-label-row">Km rodados hoje</span>
           </div>
           <div class="kpi-value" id="kpiKm">0 km</div>
@@ -62,32 +65,199 @@
       <div class="dash-grid">
         <div class="card">
           <div class="card-header">
-            <span class="card-icon-chip">&#128717;</span>
-            <div>
-              <div class="card-title">Rota do dia</div>
-              <div class="card-subtitle">Status da operação de hoje</div>
+            <div class="card-header-left">
+              <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16s6-5.6 6-9.7A6 6 0 0 0 3 6.3C3 10.4 9 16 9 16Z"/><circle cx="9" cy="6.4" r="2"/></svg></span>
+              <div>
+                <div class="card-title">Resumo do motoboy</div>
+                <div class="card-subtitle">Desempenho da semana — ainda sem integração</div>
+              </div>
+            </div>
+          </div>
+          <div class="mini-grid">
+            <div class="mini-tile">
+              <div class="mini-tile-icon"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3.4" width="14" height="12.2" rx="1.6"/><line x1="2" y1="7.2" x2="16" y2="7.2"/></svg></div>
+              <div class="mini-tile-value">—</div>
+              <div class="mini-tile-label">Dias trabalhados</div>
+            </div>
+            <div class="mini-tile">
+              <div class="mini-tile-icon"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16s6-5.6 6-9.7A6 6 0 0 0 3 6.3C3 10.4 9 16 9 16Z"/><circle cx="9" cy="6.4" r="2"/></svg></div>
+              <div class="mini-tile-value">—</div>
+              <div class="mini-tile-label">Rotas na semana</div>
+            </div>
+            <div class="mini-tile">
+              <div class="mini-tile-icon"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,9.5 7,13.5 15,4.5"/></svg></div>
+              <div class="mini-tile-value">—</div>
+              <div class="mini-tile-label">Entregas</div>
+            </div>
+            <div class="mini-tile">
+              <div class="mini-tile-icon"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 9 2l4.5 4.5M9 2v11"/></svg></div>
+              <div class="mini-tile-value">—</div>
+              <div class="mini-tile-label">Retiradas</div>
+            </div>
+            <div class="mini-tile">
+              <div class="mini-tile-icon"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h9l-2.3-2.3M15.5 12h-9l2.3 2.3"/></svg></div>
+              <div class="mini-tile-value">—</div>
+              <div class="mini-tile-label">Trocas</div>
+            </div>
+            <div class="mini-tile">
+              <div class="mini-tile-icon"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="1.2" x2="9" y2="16.8"/><path d="M12.3 4.8c0-1.5-1.6-2.3-3.3-2.3s-3.3.9-3.3 2.3 1.5 2 3.3 2.5c1.8.5 3.3 1 3.3 2.5s-1.6 2.3-3.3 2.3-3.3-.8-3.3-2.3"/></svg></div>
+              <div class="mini-tile-value">—</div>
+              <div class="mini-tile-label">Valor previsto</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2 1.3 16h15.4L9 2Z"/><line x1="9" y1="7.5" x2="9" y2="10.8"/><line x1="9" y1="13.2" x2="9" y2="13.3"/></svg></span>
+              <div>
+                <div class="card-title">Pendências para hoje</div>
+                <div class="card-subtitle">Itens que precisam de atenção</div>
+              </div>
+            </div>
+          </div>
+          <div class="simple-list">
+            <div class="simple-empty">Nenhuma pendência registrada para hoje.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16s6-5.6 6-9.7A6 6 0 0 0 3 6.3C3 10.4 9 16 9 16Z"/><circle cx="9" cy="6.4" r="2"/></svg></span>
+              <div>
+                <div class="card-title">Rota do dia</div>
+                <div class="card-subtitle">Status da operação de hoje</div>
+              </div>
             </div>
           </div>
           <div id="rotaAtualBody"></div>
         </div>
         <div class="card">
           <div class="card-header">
-            <span class="card-icon-chip">&#128202;</span>
-            <div>
-              <div class="card-title">Resumo da semana</div>
-              <div class="card-subtitle">Entregas concluídas por dia</div>
+            <div class="card-header-left">
+              <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="16" x2="3" y2="9"/><line x1="8" y1="16" x2="8" y2="5"/><line x1="13" y1="16" x2="13" y2="11"/></svg></span>
+              <div>
+                <div class="card-title">Resumo da semana</div>
+                <div class="card-subtitle">Entregas concluídas por dia</div>
+              </div>
             </div>
           </div>
           <div class="bar-chart" id="weekChart"></div>
         </div>
       </div>
 
+      <div class="dash-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 2h9M4.5 16h9M5.5 2c0 4 3.5 4.7 3.5 7s-3.5 3-3.5 7M12.5 2c0 4-3.5 4.7-3.5 7s3.5 3 3.5 7"/></svg></span>
+              <div>
+                <div class="card-title">Lista de espera</div>
+                <div class="card-subtitle">Clientes aguardando produtos indisponíveis</div>
+              </div>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr><th>Cliente</th><th>Item solicitado</th><th>Tamanho/Cor</th><th>Data</th><th>Status</th></tr></thead>
+              <tbody><tr><td colspan="5" class="empty-state">Nenhum cliente na lista de espera.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.7" cy="6.2" r="2.4"/><path d="M2.2 15.6c0-2.5 2-4.4 4.5-4.4s4.5 1.9 4.5 4.4"/><circle cx="13.3" cy="6.8" r="1.9"/><path d="M12 11.4c1.7.3 2.9 1.8 2.9 4.2"/></svg></span>
+              <div>
+                <div class="card-title">Atividades da equipe</div>
+                <div class="card-subtitle">O que cada pessoa está fazendo</div>
+              </div>
+            </div>
+          </div>
+          <div class="simple-list">
+            <div class="simple-empty">Nenhuma atividade registrada ainda.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-grid-3">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="1.2" x2="9" y2="16.8"/><path d="M12.3 4.8c0-1.5-1.6-2.3-3.3-2.3s-3.3.9-3.3 2.3 1.5 2 3.3 2.5c1.8.5 3.3 1 3.3 2.5s-1.6 2.3-3.3 2.3-3.3-.8-3.3-2.3"/></svg></span>
+              <div>
+                <div class="card-title">Financeiro rápido</div>
+                <div class="card-subtitle">Ainda sem integração</div>
+              </div>
+            </div>
+          </div>
+          <div class="mini-grid" style="grid-template-columns:1fr;">
+            <div class="mini-tile">
+              <div class="mini-tile-value">—</div>
+              <div class="mini-tile-label">A pagar ao motoboy</div>
+            </div>
+            <div class="mini-tile">
+              <div class="mini-tile-value">—</div>
+              <div class="mini-tile-label">Despesas operacionais</div>
+            </div>
+            <div class="mini-tile">
+              <div class="mini-tile-value">—</div>
+              <div class="mini-tile-label">Contas a pagar hoje</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="10,1.4 3.4,10.2 8,10.2 7.3,16.6 14.6,7 9.6,7"/></svg></span>
+              <div>
+                <div class="card-title">Ações rápidas</div>
+                <div class="card-subtitle">Atalhos para o dia a dia</div>
+              </div>
+            </div>
+          </div>
+          <div class="quick-actions">
+            <a class="quick-action" href="rota-do-dia.html">
+              <span class="quick-action-icon"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16s6-5.6 6-9.7A6 6 0 0 0 3 6.3C3 10.4 9 16 9 16Z"/><circle cx="9" cy="6.4" r="2"/></svg></span>
+              Montar rota
+            </a>
+            <a class="quick-action" href="historico.html">
+              <span class="quick-action-icon"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 2h6l3 3v11h-9Z"/><path d="M10.5 2v3h3"/></svg></span>
+              Ver histórico
+            </a>
+            <a class="quick-action" href="configuracoes.html">
+              <span class="quick-action-icon"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="2.4"/><path d="M9 1.6v2.1M9 14.3v2.1M3.2 4.2l1.5 1.5M13.3 12.3l1.5 1.5M1.6 9h2.1M14.3 9h2.1M3.2 13.8l1.5-1.5M13.3 5.7l1.5-1.5"/></svg></span>
+              Configurações
+            </a>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="7"/><polyline points="9,5 9,9 12,11"/></svg></span>
+              <div>
+                <div class="card-title">Últimas atualizações</div>
+                <div class="card-subtitle">Histórico de eventos do painel</div>
+              </div>
+            </div>
+          </div>
+          <div class="simple-list">
+            <div class="simple-empty">Nenhuma atualização registrada ainda.</div>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
-          <span class="card-icon-chip">&#127937;</span>
-          <div>
-            <div class="card-title">Última rota finalizada</div>
-            <div class="card-subtitle">Resumo da rota mais recente concluída</div>
+          <div class="card-header-left">
+            <span class="card-icon-chip"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v14"/><path d="M4 3c2-1 4 1 6 0s4-1 4 0v6c-2 1-4-1-6 0s-4 1-4 0Z"/></svg></span>
+            <div>
+              <div class="card-title">Última rota finalizada</div>
+              <div class="card-subtitle">Resumo da rota mais recente concluída</div>
+            </div>
           </div>
         </div>
         <div id="lastRouteBody"></div>
@@ -102,7 +272,7 @@
 <script src="assets/shared.js"></script>
 <script src="assets/shell.js"></script>
 <script>
-renderShell({ active: 'dashboard', title: 'Visão Geral', subtitle: 'Acompanhe a operação, pendências e atividades da Fashion Corner.' });
+renderShell({ active: 'dashboard', title: 'Visão Geral', subtitle: 'Acompanhe a operação, pendências e atividades da Fashion Corner.', primaryAction: { label: 'Nova parada', href: 'rota-do-dia.html' } });
 
 function fmtDuration(totalMin){
   const h = Math.floor(totalMin/60); const m = Math.round(totalMin%60);
